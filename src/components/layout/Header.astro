@@ -1,0 +1,55 @@
+---
+// Header.astro
+// Fetch a tu Backend Rust
+let categories = [];
+try {
+  const response = await fetch('http://localhost:3000/api/categories');
+  if (response.ok) {
+    categories = await response.json();
+  }
+} catch (e) {
+  console.error("Error conectando al backend:", e);
+  categories = [
+    { name: "Barranquilla", slug: "barranquilla" },
+    { name: "Judiciales", slug: "judiciales" }
+  ];
+}
+
+const currentDate = new Date().toLocaleDateString('es-CO', { 
+  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+});
+---
+
+<header class="w-full bg-white shadow-md sticky top-0 z-50 border-t-4 border-ctv-primary">
+  <div class="bg-ctv-primary text-white text-xs py-1">
+    <div class="container mx-auto px-4 flex justify-between items-center">
+      <span class="capitalize">{currentDate}</span>
+      <div class="flex gap-4">
+        <a href="/login" class="font-bold bg-ctv-accent px-2 py-0.5 rounded hover:bg-red-700 transition">Ingreso Periodistas</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container mx-auto px-4 py-4">
+    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+      <a href="/" class="text-3xl font-black text-ctv-primary tracking-tighter flex items-center gap-2">
+        CTV <span class="text-ctv-accent">BARRANQUILLA</span>
+      </a>
+    </div>
+  </div>
+
+  <nav class="bg-ctv-primary/5 border-y border-gray-200">
+    <div class="container mx-auto px-4">
+      <ul class="flex overflow-x-auto gap-6 text-sm font-bold text-ctv-primary py-3 whitespace-nowrap scrollbar-hide">
+        <li><a href="/" class="hover:text-ctv-accent uppercase transition">Inicio</a></li>
+        {categories.map((cat: any) => (
+          <li>
+            <a href={`/category/${cat.slug}`} class="hover:text-ctv-accent uppercase transition">
+              {cat.name}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </nav>
+</header>

@@ -1,0 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Merriweather:wght@300;400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    @apply bg-ctv-light text-ctv-dark font-sans antialiased;
+}
+
+/* Scrollbar personalizada (Toque pro) */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+    @apply bg-ctv-primary/50 hover:bg-ctv-primary;
+    border-radius: 4px;
+}

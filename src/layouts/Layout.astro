@@ -1,0 +1,38 @@
+---
+import Header from '../components/layout/Header.astro';
+import '../styles/global.css'; // Importamos los estilos globales
+
+interface Props {
+	title: string;
+	description?: string;
+}
+
+const { title, description = "Noticias de Barranquilla, el Atlántico y Colombia." } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content={description} />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title} | CTV Barranquilla</title>
+	</head>
+	<body class="bg-gray-50 min-h-screen flex flex-col">
+		
+		<Header />
+		
+		<main class="flex-grow container mx-auto px-4 py-8">
+			<slot /> </main>
+
+		<footer class="bg-ctv-primary text-white py-8 text-center mt-auto">
+			<div class="container mx-auto px-4">
+				<p class="font-bold text-xl mb-2">CTV Barranquilla</p>
+				<p class="text-sm opacity-75">© {new Date().getFullYear()} Todos los derechos reservados.</p>
+			</div>
+		</footer>
+
+	</body>
+</html>
