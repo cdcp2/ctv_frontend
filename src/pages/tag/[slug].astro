@@ -1,0 +1,69 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { listArticles } from '../../lib/api';
+
+export const prerender = false;
+
+const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
+const { slug } = Astro.params;
+const searchParams = new URL(Astro.request.url).searchParams;
+const search = searchParams.get('q') || '';
+
+// Necesitamos mapear slug->id; reutilizamos endpoint de tags
+let tagId: number | null = null;
+let tagName: string | null = null;
+try {
+  const res = await fetch(`${apiBase}/api/tags`);
+  if (res.ok) {
+    const tags = await res.json();
+    const tag = tags.find((t: any) => t.slug === slug);
+    if (tag) {
+      tagId = tag.id;
+      tagName = tag.name;
+    }
+  }
+} catch (e) {
+  console.warn('No se pudieron cargar tags', e);
+}
+
+if (!tagId) {
+  return Astro.redirect('/');
+}
+
+const articles = await listArticles({
+  tag_id: tagId,
+  search: search || undefined,
+});
+
+const resolveMedia = (url?: string | null) => {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/')) return `${apiBase}${url}`;
+  return url;
+};
+---
+
+<Layout title={`#${tagName}`} description={`Noticias etiquetadas con ${tagName}`}>
+  <section class="flex flex-col gap-4 mb-6">
+    <h1 class="text-3xl font-black text-ctv-primary uppercase">#{tagName}</h1>
+    <form method="get" class="flex items-center gap-2">
+      <input type="text" name="q" value={search} placeholder="Buscar..." class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ctv-accent/60" />
+      <button class="bg-ctv-primary text-white px-4 py-2 rounded font-semibold hover:bg-ctv-accent transition">Buscar</button>
+    </form>
+  </section>
+
+  <section class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {articles && articles.length > 0 ? articles.map((item) => (
+      <a href={`/article/${item.slug}`} class="bg-white shadow rounded-lg overflow-hidden hover:-translate-y-1 transition transform">
+        {resolveMedia(item.main_image_url) && <img src={resolveMedia(item.main_image_url)!} alt={item.title} class="w-full h-40 object-cover" loading="lazy" />}
+        <div class="p-4 space-y-2">
+          <p class="text-xs uppercase tracking-wide text-ctv-accent font-bold">#{tagName}</p>
+          <h4 class="font-bold leading-tight line-clamp-2">{item.title}</h4>
+          {item.excerpt && <p class="text-sm text-gray-600 line-clamp-2">{item.excerpt}</p>}
+        </div>
+      </a>
+    )) : (
+      <p class="text-sm text-gray-500">No hay artículos con este tag.</p>
+    )}
+  </section>
+</Layout>

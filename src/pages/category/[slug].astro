@@ -1,0 +1,55 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCategories, listArticles } from '../../lib/api';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const search = new URL(Astro.request.url).searchParams.get('q') || '';
+
+const categories = await getCategories() ?? [];
+const category = categories.find(c => c.slug === slug);
+
+const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
+
+if (!category) {
+  return Astro.redirect('/');
+}
+
+const articles = await listArticles({
+  category_id: category.id,
+  search: search || undefined,
+});
+
+const resolveMedia = (url?: string | null) => {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/')) return `${apiBase}${url}`;
+  return url;
+};
+---
+
+<Layout title={category.name} description={`Noticias de ${category.name}`}>
+  <section class="flex flex-col gap-4 mb-6">
+    <h1 class="text-3xl font-black text-ctv-primary uppercase">{category.name}</h1>
+    <form method="get" class="flex items-center gap-2">
+      <input type="text" name="q" value={search} placeholder="Buscar en esta sección..." class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ctv-accent/60" />
+      <button class="bg-ctv-primary text-white px-4 py-2 rounded font-semibold hover:bg-ctv-accent transition">Buscar</button>
+    </form>
+  </section>
+
+  <section class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {articles && articles.length > 0 ? articles.map((item) => (
+      <a href={`/article/${item.slug}`} class="bg-white shadow rounded-lg overflow-hidden hover:-translate-y-1 transition transform">
+        {resolveMedia(item.main_image_url) && <img src={resolveMedia(item.main_image_url)!} alt={item.title} class="w-full h-40 object-cover" loading="lazy" />}
+        <div class="p-4 space-y-2">
+          <p class="text-xs uppercase tracking-wide text-ctv-accent font-bold">{category.name}</p>
+          <h4 class="font-bold leading-tight line-clamp-2">{item.title}</h4>
+          {item.excerpt && <p class="text-sm text-gray-600 line-clamp-2">{item.excerpt}</p>}
+        </div>
+      </a>
+    )) : (
+      <p class="text-sm text-gray-500">No hay artículos en esta sección.</p>
+    )}
+  </section>
+</Layout>

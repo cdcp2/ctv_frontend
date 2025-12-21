@@ -1,0 +1,208 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getArticle, getRelated, getArticleTags } from '../../lib/api';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const fbAppId = import.meta.env.PUBLIC_FB_APP_ID || '';
+const article = slug ? await getArticle(slug) : null;
+
+if (!article) {
+  return Astro.redirect('/'); // fallback simple
+}
+
+const [related, tags] = await Promise.all([
+  getRelated(slug!),
+  getArticleTags(slug!)
+]);
+
+const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
+const resolveMedia = (url?: string | null) => {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/')) return `${apiBase}${url}`;
+  return url;
+};
+
+function toEmbed(url?: string | null) {
+  if (!url) return null;
+  if (url.includes('youtube.com/watch')) {
+    const id = url.split('v=')[1]?.split('&')[0];
+    if (id) return `https://www.youtube.com/embed/${id}`;
+  }
+  return url;
+}
+
+const embed = toEmbed(article.video_embed_url);
+const heroImage = resolveMedia(article.main_image_url);
+const published = article.published_at
+  ? new Date(article.published_at)
+  : article.created_at
+  ? new Date(article.created_at)
+  : null;
+
+const pageUrl = Astro.url?.href ?? '';
+const articleSlugValue = slug ?? '';
+const adsClient = 'ca-pub-7829004963088413';
+const articleMidAdSlot = import.meta.env.PUBLIC_ADS_SLOT_ARTICLE_MID || '';
+const articleEndAdSlot = import.meta.env.PUBLIC_ADS_SLOT_ARTICLE_END || '';
+---
+
+<Layout title={article.title} description={article.excerpt || article.title}>
+  <article class="max-w-5xl mx-auto bg-white shadow rounded-lg overflow-hidden">
+    {embed ? (
+      <div class="aspect-video bg-black">
+        <iframe src={embed} class="w-full h-full" allow="autoplay; encrypted-media" allowfullscreen title="Video"></iframe>
+      </div>
+    ) : (
+      heroImage && <img src={heroImage} alt={article.title} class="w-full h-80 object-cover" loading="lazy" />
+    )}
+    <div class="p-6 space-y-4">
+      <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+        <span class="text-ctv-accent font-bold uppercase">Noticia</span>
+        {published && <span>{published.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}</span>}
+        <span>Vistas: {article.views_count}</span>
+      </div>
+
+      <h1 class="text-3xl md:text-4xl font-black leading-tight text-ctv-primary">{article.title}</h1>
+      {article.excerpt && <p class="text-lg text-gray-700">{article.excerpt}</p>}
+
+      <div class="prose prose-lg max-w-none text-gray-900 prose-headings:font-black prose-a:text-ctv-accent" set:html={article.content}></div>
+
+      {articleMidAdSlot && (
+        <div class="my-6">
+          <div class="ad-box">
+            <span class="ad-label">Publicidad</span>
+            <ins class="adsbygoogle block w-full"
+              style="display:block"
+              data-ad-client={adsClient}
+              data-ad-slot={articleMidAdSlot}
+              data-ad-format="auto"
+              data-full-width-responsive="true"></ins>
+          </div>
+          <script is:inline>
+            const requestAdMid = () => {
+              try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
+            };
+            if (window.adsbygoogle) {
+              requestAdMid();
+            } else {
+              document.addEventListener('adsbygoogleLoaded', requestAdMid, { once: true });
+            }
+          </script>
+        </div>
+      )}
+
+      {tags && tags.length > 0 && (
+        <div class="flex flex-wrap gap-2 pt-2">
+          {tags.map(tag => (
+            <a href={`/tag/${tag.slug}`} class="text-xs bg-ctv-primary/10 text-ctv-primary px-2 py-1 rounded-full hover:bg-ctv-primary/20 transition">#{tag.name}</a>
+          ))}
+        </div>
+      )}
+    </div>
+  </article>
+
+  <section class="max-w-5xl mx-auto mt-10 space-y-4" id="comments">
+    <h2 class="text-xl font-black text-ctv-primary uppercase">Comentarios</h2>
+    <div id="fb-root"></div>
+    <div class="bg-white shadow rounded-lg p-4">
+      <div class="fb-comments" data-href={pageUrl || undefined} data-width="100%" data-numposts="8"></div>
+      <p class="text-xs text-gray-500 mt-2">Usa tu cuenta de Facebook para comentar esta nota.</p>
+    </div>
+  </section>
+
+  <section class="max-w-5xl mx-auto mt-10">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-black text-ctv-primary uppercase">Relacionadas</h2>
+      <div class="ad-slot text-xs text-gray-500">Espacio publicitario (300x250)</div>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {related && related.length > 0 ? related.map(item => (
+        <a href={`/article/${item.slug}`} class="bg-white shadow rounded-lg overflow-hidden hover:-translate-y-1 transition transform">
+          {resolveMedia(item.main_image_url) && <img src={resolveMedia(item.main_image_url)!} alt={item.title} class="w-full h-32 object-cover" loading="lazy" />}
+          <div class="p-4 space-y-1">
+            <p class="text-xs uppercase tracking-wide text-ctv-accent font-bold">Noticia</p>
+            <h4 class="font-semibold leading-tight line-clamp-2">{item.title}</h4>
+          </div>
+        </a>
+      )) : (
+        <p class="text-sm text-gray-500">No hay relacionadas.</p>
+      )}
+    </div>
+  </section>
+
+  {articleEndAdSlot && (
+    <section class="max-w-5xl mx-auto mt-8">
+      <div class="bg-white shadow rounded-lg p-4">
+        <h2 class="text-xl font-black text-ctv-primary uppercase mb-3">Publicidad</h2>
+        <div class="ad-box">
+          <ins class="adsbygoogle block w-full"
+            style="display:block"
+            data-ad-client={adsClient}
+            data-ad-slot={articleEndAdSlot}
+            data-ad-format="auto"
+            data-full-width-responsive="true"></ins>
+        </div>
+        <script is:inline>
+          const requestAdEnd = () => {
+            try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
+          };
+          if (window.adsbygoogle) {
+            requestAdEnd();
+          } else {
+            document.addEventListener('adsbygoogleLoaded', requestAdEnd, { once: true });
+          }
+        </script>
+      </div>
+    </section>
+  )}
+
+  <script
+    is:inline
+    data-slug={articleSlugValue}
+    data-fb-app-id={fbAppId}
+  >
+    const { dataset } = document.currentScript;
+    const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
+    const articleSlug = dataset.slug || '';
+    fetch(`${apiBase}/api/articles/${articleSlug}/view`, { method: 'POST' }).catch(() => {});
+
+    const fbAppId = dataset.fbAppId || '';
+
+    // Inicializamos el SDK si se provee App ID; si no, solo parseamos XFBML
+    window.fbAsyncInit = function() {
+      if (fbAppId && window.FB?.init) {
+        window.FB.init({
+          appId: fbAppId,
+          xfbml: true,
+          version: 'v17.0'
+        });
+      } else if (window.FB?.XFBML?.parse) {
+        window.FB.XFBML.parse();
+      }
+    };
+
+    // Cargamos el SDK de Facebook solo si no está presente
+    (function loadFB(d, s, id) {
+      const existing = d.getElementById(id);
+      if (existing) {
+        if (window.FB?.XFBML?.parse) window.FB.XFBML.parse();
+        return;
+      }
+      const js = d.createElement(s); js.id = id;
+      const appParam = fbAppId ? `&appId=${encodeURIComponent(fbAppId)}` : '';
+      js.src = `https://connect.facebook.net/es_LA/sdk.js#xfbml=1&version=v17.0${appParam}`;
+      const fjs = d.getElementsByTagName(s)[0];
+      fjs.parentNode.insertBefore(js, fjs);
+    })(document, 'script', 'facebook-jssdk');
+
+    // Si data-href no viene en HTML (p.ej. entornos sin host conocido), usamos la URL actual
+    const comments = document.querySelector('.fb-comments');
+    if (comments && !comments.getAttribute('data-href')) {
+      comments.setAttribute('data-href', window.location.href);
+      if (window.FB?.XFBML?.parse) window.FB.XFBML.parse();
+    }
+  </script>
+</Layout>

@@ -8,6 +8,13 @@ body {
     @apply bg-ctv-light text-ctv-dark font-sans antialiased;
 }
 
+.ad-box {
+    @apply rounded-lg border border-gray-200 bg-white/90 p-3 shadow-sm;
+}
+.ad-label {
+    @apply text-xs uppercase tracking-wide text-gray-500 mb-2 block;
+}
+
 /* Scrollbar personalizada (Toque pro) */
 ::-webkit-scrollbar {
     width: 8px;

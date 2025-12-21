@@ -1,43 +1,34 @@
-# Astro Starter Kit: Minimal
+# CTV Frontend (Astro)
 
-```sh
-npm create astro@latest -- --template minimal
+Frontend público para el portal de noticias. Consume el backend Rust en `/api` (ver `.env`).
+
+## Configuración
+1) Instalar deps: `npm install`
+2) Crear `.env` con:
 ```
+PUBLIC_API_BASE=http://localhost:3000
+PUBLIC_FALLBACK_YT_EMBED=https://www.youtube.com/embed/<id>   # opcional, embed directo para la señal
+PUBLIC_FALLBACK_YT_IDS=id1,id2                              # opcional, pool rotativo cada 12h
+``` 
+3) Ejecutar:
+- `npm run dev` (localhost:4321)
+- `npm run build` (genera `dist/`)
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+> La página de artículo es SSR en runtime; para el build estático se deja sin prerender (getStaticPaths vacío), así que en despliegue estático no habrá rutas de artículo pre-renderizadas.
 
-## 🚀 Project Structure
+## Rutas actuales
+- `/` Home con: señal en vivo (`site_config`), destacados (featured/breaking), últimas, más leídas, videos.
+- `/article/[slug]` Detalle (incrementa vistas en el cliente, muestra video embed, tags y relacionadas).
 
-Inside of your Astro project, you'll see the following folders and files:
+## Datos que se consumen del backend
+- `GET /api/categories` (header)
+- `GET /api/site-config` (stream en vivo / banner)
+- `GET /api/articles` con filtros (`is_featured`, `is_breaking`, `has_video`, `tag_id`)
+- `GET /api/articles/featured|breaking|videos|most-read|:slug|:slug/related|:slug/tags`
+- `POST /api/articles/:slug/view` (se llama en el detalle)
+- Uploads servidos desde `/uploads/...`
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
-
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+## Pendientes (shortlist)
+- Añadir páginas de categoría/búsqueda/tag.
+- Mejorar estilos responsive/animaciones e integrar comentarios (FB).
+- Panel interno (otra app) para CRUD y cuentas (cuando exista).

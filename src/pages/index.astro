@@ -1,13 +1,202 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { getSiteConfig, getFeatured, getBreaking, getVideos, getMostRead, listArticles, type Tag } from '../lib/api';
+
+const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
+
+const [siteConfig, featured, breaking, videos, mostRead, latest, tags] = await Promise.all([
+  getSiteConfig(),
+  getFeatured(),
+  getBreaking(),
+  getVideos(),
+  getMostRead(),
+  listArticles({}), // últimas
+  fetch(`${apiBase}/api/tags`).then(r => r.ok ? r.json() : null).catch(() => null) as Promise<Tag[] | null>,
+]);
+
+const featuredList = (featured && featured.length ? featured : (breaking || [])).slice(0, 5);
+const latestList = latest?.slice(0, 8) ?? [];
+const videoCandidates = videos && videos.length ? videos : (latest ?? []).filter(item => !!item.video_embed_url);
+const videoList = videoCandidates.slice(0, 6);
+const mostReadList = mostRead?.slice(0, 6) ?? [];
+const tagList = tags?.slice(0, 12) ?? [];
+
+const resolveMedia = (url?: string | null) => {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/')) return `${apiBase}${url}`;
+  return url;
+};
+
+function toEmbed(url?: string | null) {
+  if (!url) return null;
+  // Ya viene embebido o no es YouTube: lo usamos directo
+  if (url.includes('youtube.com/embed/')) return url;
+  const yt = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
+  if (yt?.[1]) return `https://www.youtube.com/embed/${yt[1]}`;
+  return url;
+}
+
+const liveEmbed = siteConfig?.is_live_active ? toEmbed(siteConfig?.live_stream_url) : null;
+const latestVideoEmbed = videoList.length ? toEmbed(videoList[0].video_embed_url) : null;
+const fallbackEmbedDirect = import.meta.env.PUBLIC_FALLBACK_YT_EMBED || '';
+const fallbackIds = (import.meta.env.PUBLIC_FALLBACK_YT_IDS || '')
+  .split(',')
+  .map((s: string) => s.trim())
+  .filter(Boolean);
+const fallbackIdx = fallbackIds.length ? Math.floor(Date.now() / (1000 * 60 * 60 * 12)) % fallbackIds.length : 0;
+const fallbackEmbed = fallbackEmbedDirect
+  ? fallbackEmbedDirect
+  : fallbackIds.length
+  ? `https://www.youtube.com/embed/${fallbackIds[fallbackIdx]}`
+  : 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+const playerEmbed = liveEmbed || latestVideoEmbed || fallbackEmbed;
+
+const adsClient = 'ca-pub-7829004963088413';
+const homeTopAdSlot = import.meta.env.PUBLIC_ADS_SLOT_HOME_TOP || '';
+const homeSideAdSlot = import.meta.env.PUBLIC_ADS_SLOT_HOME_SIDE || '';
 ---
 
 <Layout title="Inicio">
-	<div class="text-center py-20">
-		<h1 class="text-4xl font-bold text-ctv-primary mb-4">¡El Frontend está vivo! 🚀</h1>
-		<p class="text-xl text-gray-600">
-			Si ves el menú arriba con las categorías de tu base de datos (Barranquilla, Judiciales...), 
-			significa que Astro y Rust ya son amigos.
-		</p>
-	</div>
+  <section class="grid lg:grid-cols-[2fr,1fr] gap-8 items-start">
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+      <div class="px-4 pt-4 flex items-center justify-between">
+        <h2 class="text-lg font-black uppercase text-ctv-accent">Señal en vivo</h2>
+        {siteConfig?.breaking_news_banner && (
+          <span class="text-xs bg-ctv-accent text-white px-2 py-1 rounded">{siteConfig.breaking_news_banner}</span>
+        )}
+      </div>
+      <div class="aspect-video bg-ctv-dark/5">
+        <iframe src={playerEmbed} class="w-full h-full" allow="autoplay; encrypted-media" allowfullscreen title="Señal en vivo"></iframe>
+      </div>
+
+      {homeTopAdSlot && (
+        <div class="p-4">
+          <div class="ad-box">
+            <span class="ad-label">Publicidad</span>
+            <ins class="adsbygoogle block w-full"
+              style="display:block"
+              data-ad-client={adsClient}
+              data-ad-slot={homeTopAdSlot}
+              data-ad-format="auto"
+              data-full-width-responsive="true"></ins>
+          </div>
+          <script is:inline>
+            const requestAd = () => {
+              try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
+            };
+            if (window.adsbygoogle) {
+              requestAd();
+            } else {
+              document.addEventListener('adsbygoogleLoaded', requestAd, { once: true });
+            }
+          </script>
+        </div>
+      )}
+    </div>
+
+    <aside class="bg-white shadow rounded-lg p-4">
+      <h3 class="text-2xl font-black text-ctv-accent mb-4 uppercase">Destacado</h3>
+      <div class="space-y-4">
+        {featuredList.length === 0 && <p class="text-sm text-gray-500">Aún no hay destacados.</p>}
+        {featuredList.map((item, idx) => (
+          <a href={`/article/${item.slug}`} class="flex gap-3 p-3 hover:bg-gray-50 rounded transition">
+            <span class="text-ctv-accent font-black text-xl">{idx + 1}</span>
+            <div>
+              <p class="font-bold leading-tight">{item.title}</p>
+              {item.excerpt && <p class="text-sm text-gray-600 mt-1 line-clamp-2">{item.excerpt}</p>}
+            </div>
+          </a>
+        ))}
+      </div>
+    </aside>
+  </section>
+
+  <section class="mt-10 grid lg:grid-cols-[2fr,1fr] gap-8">
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-black text-ctv-primary uppercase">Últimas noticias</h3>
+        <a href="/" class="text-sm text-ctv-accent font-semibold">Ver todas</a>
+      </div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {latestList.length === 0 && <p class="text-sm text-gray-500">No hay noticias aún.</p>}
+        {latestList.map((item) => (
+          <a href={`/article/${item.slug}`} class="bg-white shadow rounded-lg overflow-hidden hover:-translate-y-1 transition transform">
+            {resolveMedia(item.main_image_url) && <img src={resolveMedia(item.main_image_url)!} alt={item.title} class="w-full h-40 object-cover" loading="lazy" />}
+            <div class="p-4 space-y-2">
+              <p class="text-xs uppercase tracking-wide text-ctv-accent font-bold">Noticia</p>
+              <h4 class="font-bold leading-tight line-clamp-2">{item.title}</h4>
+              {item.excerpt && <p class="text-sm text-gray-600 line-clamp-2">{item.excerpt}</p>}
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <div class="space-y-8">
+      <div class="bg-white shadow rounded-lg p-4">
+        <h3 class="text-xl font-black text-ctv-primary uppercase mb-3">Tags</h3>
+        <div class="flex flex-wrap gap-2">
+          {tagList.length === 0 && <p class="text-sm text-gray-500">Sin tags aún.</p>}
+          {tagList.map(tag => (
+            <a href={`/tag/${tag.slug}`} class="text-xs bg-ctv-primary/10 text-ctv-primary px-2 py-1 rounded-full hover:bg-ctv-primary/20 transition">
+              #{tag.name}
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div class="bg-white shadow rounded-lg p-4">
+        <h3 class="text-xl font-black text-ctv-primary uppercase mb-3">Más leídas</h3>
+        <div class="space-y-3">
+          {mostReadList.length === 0 && <p class="text-sm text-gray-500">Sin datos aún.</p>}
+          {mostReadList.map((item) => (
+            <a href={`/article/${item.slug}`} class="block hover:text-ctv-accent transition">
+              <p class="font-semibold leading-tight">{item.title}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div class="bg-white shadow rounded-lg p-4">
+        <h3 class="text-xl font-black text-ctv-primary uppercase mb-3">Videos</h3>
+        <div class="space-y-3">
+          {videoList.length === 0 && <p class="text-sm text-gray-500">Sin videos aún.</p>}
+          {videoList.map((item) => (
+            <a href={`/article/${item.slug}`} class="flex gap-3 items-center hover:bg-gray-50 p-2 rounded transition">
+              {resolveMedia(item.main_image_url) && <img src={resolveMedia(item.main_image_url)!} alt={item.title} class="w-16 h-12 object-cover rounded" loading="lazy" />}
+              <div>
+                <p class="text-xs uppercase text-ctv-accent font-bold">Video</p>
+                <p class="font-semibold leading-tight line-clamp-2">{item.title}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      {homeSideAdSlot && (
+        <div class="bg-white shadow rounded-lg p-4">
+          <h3 class="text-xl font-black text-ctv-primary uppercase mb-3">Publicidad</h3>
+          <div class="ad-box">
+            <ins class="adsbygoogle block w-full"
+              style="display:block"
+              data-ad-client={adsClient}
+              data-ad-slot={homeSideAdSlot}
+              data-ad-format="auto"
+              data-full-width-responsive="true"></ins>
+          </div>
+          <script is:inline>
+            const requestAdSide = () => {
+              try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
+            };
+            if (window.adsbygoogle) {
+              requestAdSide();
+            } else {
+              document.addEventListener('adsbygoogleLoaded', requestAdSide, { once: true });
+            }
+          </script>
+        </div>
+      )}
+    </div>
+  </section>
 </Layout>

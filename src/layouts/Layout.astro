@@ -8,6 +8,7 @@ interface Props {
 }
 
 const { title, description = "Noticias de Barranquilla, el Atlántico y Colombia." } = Astro.props;
+const adsClient = 'ca-pub-7829004963088413';
 ---
 
 <!doctype html>
@@ -16,7 +17,8 @@ const { title, description = "Noticias de Barranquilla, el Atlántico y Colombia
 		<meta charset="UTF-8" />
 		<meta name="description" content={description} />
 		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" type="image/png" href="/icono.png" />
+		<meta name="google-adsense-account" content={adsClient} />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title} | CTV Barranquilla</title>
 	</head>
@@ -34,5 +36,73 @@ const { title, description = "Noticias de Barranquilla, el Atlántico y Colombia
 			</div>
 		</footer>
 
+		<div id="ads-consent" class="hidden fixed bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 max-w-3xl bg-white shadow-lg border border-gray-200 rounded-lg p-4 z-50">
+			<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+				<div>
+					<p class="font-semibold text-gray-900">Publicidad y cookies</p>
+					<p class="text-sm text-gray-600">Usamos anuncios de Google que pueden requerir cookies. ¿Deseas habilitarlos?</p>
+				</div>
+				<div class="flex gap-2">
+					<button id="ads-consent-accept" class="px-3 py-2 bg-ctv-primary text-white rounded hover:bg-ctv-primary/90 text-sm">Aceptar</button>
+					<button id="ads-consent-reject" class="px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm">No, gracias</button>
+				</div>
+			</div>
+		</div>
+
+		<script is:inline data-ads-client={adsClient}>
+			const ADS_CLIENT = document.currentScript.dataset.adsClient || '';
+			const CONSENT_KEY = 'ads-consent';
+
+			function loadAdsScript() {
+				if (window.__adsScriptLoaded) return;
+				const s = document.createElement('script');
+				s.async = true;
+				s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(ADS_CLIENT)}`;
+				s.crossOrigin = 'anonymous';
+				s.onload = () => {
+					window.__adsScriptLoaded = true;
+					document.dispatchEvent(new Event('adsbygoogleLoaded'));
+				};
+				document.head.appendChild(s);
+			}
+
+			function hideConsent() {
+				const banner = document.getElementById('ads-consent');
+				if (banner) banner.classList.add('hidden');
+			}
+
+			function showConsent() {
+				const banner = document.getElementById('ads-consent');
+				if (banner) banner.classList.remove('hidden');
+			}
+
+			function initConsent() {
+				const stored = localStorage.getItem(CONSENT_KEY);
+				if (stored === 'accepted') {
+					loadAdsScript();
+					return;
+				}
+				if (stored === 'rejected') {
+					hideConsent();
+					return;
+				}
+				showConsent();
+			}
+
+			window.addEventListener('DOMContentLoaded', () => {
+				const accept = document.getElementById('ads-consent-accept');
+				const reject = document.getElementById('ads-consent-reject');
+				if (accept) accept.addEventListener('click', () => {
+					localStorage.setItem(CONSENT_KEY, 'accepted');
+					hideConsent();
+					loadAdsScript();
+				});
+				if (reject) reject.addEventListener('click', () => {
+					localStorage.setItem(CONSENT_KEY, 'rejected');
+					hideConsent();
+				});
+				initConsent();
+			});
+		</script>
 	</body>
 </html>
