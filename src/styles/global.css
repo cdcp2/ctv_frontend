@@ -15,6 +15,21 @@ body {
     @apply text-xs uppercase tracking-wide text-gray-500 mb-2 block;
 }
 
+.text-flag-baq {
+    /* Paleta basada en icono.png: rojo vino, dorado, verde */
+    background: linear-gradient(120deg,
+        #9c0f27 0%,
+        #9c0f27 30%,
+        #d7b137 30%,
+        #d7b137 55%,
+        #2f6f36 55%,
+        #2f6f36 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.15);
+}
+
 /* Scrollbar personalizada (Toque pro) */
 ::-webkit-scrollbar {
     width: 8px;
