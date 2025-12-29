@@ -21,9 +21,9 @@ const socials = [
 <header class="w-full bg-white shadow-md sticky top-0 z-50 border-t-4 border-ctv-primary">
   <div class="container mx-auto px-4 py-4">
     <div class="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-6">
-      <a href="/" class="text-3xl font-black tracking-tighter flex items-center gap-2">
-        <span class="text-flag-baq drop-shadow-sm">CTV</span>
-        <span class="text-ctv-primary drop-shadow-sm">BARRANQUILLA</span>
+      <a href="/" class="flex items-center" aria-label="CTV Barranquilla inicio">
+        <span class="logo-ctv" aria-hidden="true"></span>
+        <span class="sr-only">CTV Barranquilla</span>
       </a>
       <div class="flex items-center gap-3">
         {socials.map((s) => (
