@@ -1,13 +1,14 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getCategories, listArticles } from '../../lib/api';
+import { withCategorySlug } from '../../lib/categories';
 
 export const prerender = false;
 
 const { slug } = Astro.params;
 const search = new URL(Astro.request.url).searchParams.get('q') || '';
 
-const categories = await getCategories() ?? [];
+const categories = (await getCategories() ?? []).map(withCategorySlug);
 const category = categories.find(c => c.slug === slug);
 
 const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';

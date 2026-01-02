@@ -1,7 +1,8 @@
 ---
 import { getCategories } from '../../lib/api';
+import { withCategorySlug } from '../../lib/categories';
 
-let categories = await getCategories() ?? [
+const fallbackCategories = [
   { name: "Barranquilla", slug: "barranquilla" },
   { name: "Atlántico", slug: "atlantico" },
   { name: "Judiciales", slug: "judiciales" },
@@ -10,6 +11,8 @@ let categories = await getCategories() ?? [
   { name: "Economía", slug: "economia" },
   { name: "Opinión", slug: "opinion" },
 ];
+
+const categories = (await getCategories() ?? fallbackCategories).map(withCategorySlug);
 
 const socials = [
   { href: import.meta.env.PUBLIC_SOCIAL_FACEBOOK || '', label: 'Facebook', icon: 'facebook' },
