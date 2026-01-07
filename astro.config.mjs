@@ -10,7 +10,7 @@ const useNoopImageService =
 
 // https://astro.build/config
 export default defineConfig({
-  output: 'server',
+  output: 'static',
   adapter: node({ mode: 'standalone' }),
   image: {
     // Usamos sharp por defecto; permitir desactivar con ASTRO_IMAGE_SERVICE=noop o ASTRO_DISABLE_SHARP=1
