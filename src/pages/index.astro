@@ -1,8 +1,17 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { getSiteConfig, getFeatured, getBreaking, getVideos, getMostRead, listArticles, type Tag } from '../lib/api';
+import AdSlot from '../components/AdSlot.astro';
 
 const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
+type Ad = {
+  id: number;
+  title: string;
+  image_url?: string | null;
+  target_url?: string | null;
+  html_snippet?: string | null;
+  position: string;
+};
 
 const [siteConfig, featured, breaking, videos, mostRead, latest, tags] = await Promise.all([
   getSiteConfig(),
@@ -12,6 +21,11 @@ const [siteConfig, featured, breaking, videos, mostRead, latest, tags] = await P
   getMostRead(),
   listArticles({}), // últimas
   fetch(`${apiBase}/api/tags`).then(r => r.ok ? r.json() : null).catch(() => null) as Promise<Tag[] | null>,
+]);
+
+const [adsHomeTop, adsSidebar] = await Promise.all([
+  fetch(`${apiBase}/api/ads?position=home_top&limit=1`).then(r => r.ok ? r.json() as Promise<Ad[]> : []).catch(() => []) as Promise<Ad[]>,
+  fetch(`${apiBase}/api/ads?position=sidebar&limit=2`).then(r => r.ok ? r.json() as Promise<Ad[]> : []).catch(() => []) as Promise<Ad[]>,
 ]);
 
 const featuredList = (featured && featured.length ? featured : (breaking || [])).slice(0, 5);
@@ -50,11 +64,31 @@ const fallbackEmbed = fallbackEmbedDirect
   : fallbackIds.length
   ? `https://www.youtube.com/embed/${fallbackIds[fallbackIdx]}`
   : 'https://www.youtube.com/embed/dQw4w9WgXcQ';
-const playerEmbed = liveEmbed || latestVideoEmbed || fallbackEmbed;
+const liveSource = siteConfig?.is_live_active ? siteConfig?.live_stream_url?.trim() || null : null;
+const liveKind = (() => {
+  if (!liveSource) return null;
+  if (liveSource.endsWith('.m3u8')) return { kind: 'hls', url: liveSource };
+  if (liveSource.match(/\.(mp4|webm|ogg)(\?|$)/i)) return { kind: 'file', url: liveSource };
+  return { kind: 'embed', url: toEmbed(liveSource) };
+})();
+const playerEmbed = liveKind?.kind === 'embed' ? liveKind.url : liveEmbed || latestVideoEmbed || fallbackEmbed;
 
 const adsClient = 'ca-pub-7829004963088413';
 const homeTopAdSlot = import.meta.env.PUBLIC_ADS_SLOT_HOME_TOP || '';
 const homeSideAdSlot = import.meta.env.PUBLIC_ADS_SLOT_HOME_SIDE || '';
+
+const manualHomeTop = adsHomeTop?.[0];
+const manualSidebar = adsSidebar?.[0];
+const homeTopImage = manualHomeTop?.image_url
+  ? manualHomeTop.image_url.startsWith('http')
+    ? manualHomeTop.image_url
+    : `${apiBase}${manualHomeTop.image_url}`
+  : null;
+const sidebarImage = manualSidebar?.image_url
+  ? manualSidebar.image_url.startsWith('http')
+    ? manualSidebar.image_url
+    : `${apiBase}${manualSidebar.image_url}`
+  : null;
 ---
 
 <Layout title="Inicio">
@@ -62,35 +96,35 @@ const homeSideAdSlot = import.meta.env.PUBLIC_ADS_SLOT_HOME_SIDE || '';
     <div class="bg-white shadow rounded-lg overflow-hidden">
       <div class="px-4 pt-4 flex items-center justify-between">
         <h2 class="text-lg font-black uppercase text-ctv-accent">Señal en vivo</h2>
-        {siteConfig?.breaking_news_banner && (
-          <span class="text-xs bg-ctv-accent text-white px-2 py-1 rounded">{siteConfig.breaking_news_banner}</span>
-        )}
       </div>
       <div class="aspect-video bg-ctv-dark/5">
-        <iframe src={playerEmbed} class="w-full h-full" allow="autoplay; encrypted-media" allowfullscreen title="Señal en vivo"></iframe>
+        {liveKind?.kind === 'file' ? (
+          <video src={liveKind.url} class="w-full h-full" controls autoplay muted playsinline preload="none"></video>
+        ) : (
+          <iframe
+            src={liveKind?.kind === 'embed' ? liveKind.url : playerEmbed}
+            class="w-full h-full"
+            allow="autoplay; encrypted-media"
+            allowfullscreen
+            title="Señal en vivo"
+          ></iframe>
+        )}
       </div>
 
-      {homeTopAdSlot && (
+      {(manualHomeTop || homeTopAdSlot) && (
         <div class="p-4">
-          <div class="ad-box">
-            <span class="ad-label">Publicidad</span>
-            <ins class="adsbygoogle block w-full"
-              style="display:block"
-              data-ad-client={adsClient}
-              data-ad-slot={homeTopAdSlot}
-              data-ad-format="auto"
-              data-full-width-responsive="true"></ins>
-          </div>
-          <script is:inline>
-            const requestAd = () => {
-              try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
-            };
-            if (window.adsbygoogle) {
-              requestAd();
-            } else {
-              document.addEventListener('adsbygoogleLoaded', requestAd, { once: true });
-            }
-          </script>
+          {manualHomeTop ? (
+            manualHomeTop.html_snippet ? (
+              <div class="ad-shell ad-home_top" set:html={manualHomeTop.html_snippet}></div>
+            ) : homeTopImage ? (
+              <a class="ad-shell ad-home_top" href={manualHomeTop.target_url || '#'} target="_blank" rel="noreferrer">
+                <span class="ad-label">Publicidad</span>
+                <img src={homeTopImage} alt={manualHomeTop.title} class="ad-frame" loading="lazy" style="object-fit:contain;" />
+              </a>
+            ) : null
+          ) : (
+            <AdSlot client={adsClient} slot={homeTopAdSlot} slotType="home_top" />
+          )}
         </div>
       )}
     </div>
@@ -118,7 +152,7 @@ const homeSideAdSlot = import.meta.env.PUBLIC_ADS_SLOT_HOME_SIDE || '';
         <h3 class="text-xl font-black text-ctv-primary uppercase">Últimas noticias</h3>
         <a href="/" class="text-sm text-ctv-accent font-semibold">Ver todas</a>
       </div>
-      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6" data-latest-list>
         {latestList.length === 0 && <p class="text-sm text-gray-500">No hay noticias aún.</p>}
         {latestList.map((item) => (
           <a href={`/article/${item.slug}`} class="bg-white shadow rounded-lg overflow-hidden hover:-translate-y-1 transition transform">
@@ -148,7 +182,7 @@ const homeSideAdSlot = import.meta.env.PUBLIC_ADS_SLOT_HOME_SIDE || '';
 
       <div class="bg-white shadow rounded-lg p-4">
         <h3 class="text-xl font-black text-ctv-primary uppercase mb-3">Más leídas</h3>
-        <div class="space-y-3">
+        <div class="space-y-3" data-mostread-list>
           {mostReadList.length === 0 && <p class="text-sm text-gray-500">Sin datos aún.</p>}
           {mostReadList.map((item) => (
             <a href={`/article/${item.slug}`} class="block hover:text-ctv-accent transition">
@@ -174,29 +208,167 @@ const homeSideAdSlot = import.meta.env.PUBLIC_ADS_SLOT_HOME_SIDE || '';
         </div>
       </div>
 
-      {homeSideAdSlot && (
+      {(manualSidebar || homeSideAdSlot) && (
         <div class="bg-white shadow rounded-lg p-4">
           <h3 class="text-xl font-black text-ctv-primary uppercase mb-3">Publicidad</h3>
-          <div class="ad-box">
-            <ins class="adsbygoogle block w-full"
-              style="display:block"
-              data-ad-client={adsClient}
-              data-ad-slot={homeSideAdSlot}
-              data-ad-format="auto"
-              data-full-width-responsive="true"></ins>
-          </div>
-          <script is:inline>
-            const requestAdSide = () => {
-              try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
-            };
-            if (window.adsbygoogle) {
-              requestAdSide();
-            } else {
-              document.addEventListener('adsbygoogleLoaded', requestAdSide, { once: true });
-            }
-          </script>
+          {manualSidebar ? (
+            manualSidebar.html_snippet ? (
+              <div class="ad-shell ad-sidebar">
+                <div class="ad-frame" set:html={manualSidebar.html_snippet}></div>
+              </div>
+            ) : sidebarImage ? (
+              <div class="ad-shell ad-sidebar">
+                <a href={manualSidebar.target_url || '#'} target="_blank" rel="noreferrer">
+                  <img
+                    src={sidebarImage}
+                    alt={manualSidebar.title}
+                    class="ad-frame"
+                    loading="lazy"
+                    style="object-fit:contain;"
+                  />
+                </a>
+              </div>
+            ) : null
+          ) : (
+            <AdSlot client={adsClient} slot={homeSideAdSlot} slotType="sidebar" showLabel={false} />
+          )}
         </div>
       )}
     </div>
   </section>
+
+  <script
+    is:inline
+    data-api-base={apiBase}
+    data-fallback={playerEmbed}
+    data-live-url={liveKind?.url || ''}
+    data-live-kind={liveKind?.kind || ''}
+  >
+    (() => {
+      const script = document.currentScript;
+      const apiBase = script?.dataset.apiBase || '';
+      const fallback = script?.dataset.fallback || '';
+      let currentLive = script?.dataset.liveUrl || '';
+      let currentKind = script?.dataset.liveKind || '';
+
+      const resolveKind = (url) => {
+        if (!url) return null;
+        if (url.endsWith('.m3u8')) return { kind: 'hls', url };
+        if (url.match(/\.(mp4|webm|ogg)(\?|$)/i)) return { kind: 'file', url };
+        return { kind: 'embed', url };
+      };
+
+      const renderLive = (kind, url) => {
+        const container = document.querySelector('.aspect-video.bg-ctv-dark\\/5');
+        if (!container) return;
+        if (kind === 'file') {
+          container.innerHTML = `<video src="${url}" class="w-full h-full" controls autoplay muted playsinline preload="none"></video>`;
+          return;
+        }
+        if (kind === 'hls') {
+          container.innerHTML = `<div class="w-full h-full relative"><video id="live-video" class="w-full h-full" controls autoplay muted playsinline preload="none"></video></div>`;
+          const video = document.getElementById('live-video');
+          const attach = () => {
+            if (!video) return;
+            if (video.canPlayType('application/vnd.apple.mpegurl')) {
+              video.src = url;
+              video.play().catch(() => {});
+            } else if (window.Hls) {
+              const hls = new window.Hls();
+              hls.loadSource(url);
+              hls.attachMedia(video);
+            }
+          };
+          if (!window.Hls && !video.canPlayType('application/vnd.apple.mpegurl')) {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.11/dist/hls.min.js';
+            s.onload = attach;
+            document.head.appendChild(s);
+          } else {
+            attach();
+          }
+          return;
+        }
+        container.innerHTML = `<iframe src="${url || fallback}" class="w-full h-full" allow="autoplay; encrypted-media" allowfullscreen title="Señal en vivo"></iframe>`;
+      };
+
+      const updateList = (selector, data) => {
+        const container = document.querySelector(selector);
+        if (!container) return;
+        const tpl = data
+          .map(
+            (item, idx) => `
+              <a href="/article/${item.slug}" class="bg-white shadow rounded-lg overflow-hidden hover:-translate-y-1 transition transform block">
+                ${item.main_image_url ? `<img src="${item.main_image_url.startsWith('http') ? item.main_image_url : `${apiBase}${item.main_image_url}`}" alt="${item.title}" class="w-full h-40 object-cover" loading="lazy" />` : ''}
+                <div class="p-4 space-y-2">
+                  <p class="text-xs uppercase tracking-wide text-ctv-accent font-bold">${idx !== undefined ? 'Noticia' : 'Noticia'}</p>
+                  <h4 class="font-bold leading-tight line-clamp-2">${item.title}</h4>
+                  ${item.excerpt ? `<p class="text-sm text-gray-600 line-clamp-2">${item.excerpt}</p>` : ''}
+                </div>
+              </a>`
+          )
+          .join('');
+        container.innerHTML = tpl || `<p class="text-sm text-gray-500">No hay noticias aún.</p>`;
+      };
+
+      const updateMostRead = (selector, data) => {
+        const container = document.querySelector(selector);
+        if (!container) return;
+        container.innerHTML =
+          data
+            .map(
+              (item) => `
+              <a href="/article/${item.slug}" class="block hover:text-ctv-accent transition">
+                <p class="font-semibold leading-tight">${item.title}</p>
+              </a>`
+            )
+            .join('') || `<p class="text-sm text-gray-500">Sin datos aún.</p>`;
+      };
+
+      const poll = async () => {
+        try {
+          const [cfgRes, latestRes, mostReadRes] = await Promise.all([
+            fetch(`${apiBase}/api/site-config`),
+            fetch(`${apiBase}/api/articles`),
+            fetch(`${apiBase}/api/articles/most-read`),
+          ]);
+          if (cfgRes.ok) {
+            const cfg = await cfgRes.json();
+            const liveUrl = cfg?.is_live_active ? (cfg.live_stream_url || '').trim() : '';
+            const kindInfo = resolveKind(liveUrl);
+            const newKind = kindInfo?.kind || '';
+            const newUrl = kindInfo?.url || '';
+            if (newUrl !== currentLive || newKind !== currentKind) {
+              currentLive = newUrl;
+              currentKind = newKind;
+              renderLive(newKind, newUrl);
+            }
+          }
+          if (latestRes.ok) {
+            const latest = await latestRes.json();
+            if (Array.isArray(latest)) {
+              updateList('[data-latest-list]', latest.slice(0, 8));
+            }
+          }
+          if (mostReadRes.ok) {
+            const most = await mostReadRes.json();
+            if (Array.isArray(most)) {
+              updateMostRead('[data-mostread-list]', most.slice(0, 6));
+            }
+          }
+        } catch (_e) {
+          // silencio
+        }
+      };
+
+      // Refresca live y lista cada 60s si la pestaña está visible
+      const interval = setInterval(() => {
+        if (document.visibilityState === 'visible') poll();
+      }, 60000);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') poll();
+      });
+      window.addEventListener('beforeunload', () => clearInterval(interval));
+    })();
+  </script>
 </Layout>

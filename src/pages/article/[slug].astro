@@ -1,6 +1,15 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getArticle, getRelated, getArticleTags } from '../../lib/api';
+import AdSlot from '../../components/AdSlot.astro';
+type Ad = {
+  id: number;
+  title: string;
+  image_url?: string | null;
+  target_url?: string | null;
+  html_snippet?: string | null;
+  position: string;
+};
 
 export const prerender = false;
 
@@ -12,9 +21,11 @@ if (!article) {
   return Astro.redirect('/'); // fallback simple
 }
 
-const [related, tags] = await Promise.all([
+const [related, tags, adsMid, adsEnd] = await Promise.all([
   getRelated(slug!),
-  getArticleTags(slug!)
+  getArticleTags(slug!),
+  fetch(`${import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000'}/api/ads?position=article_mid&limit=1`).then(r => r.ok ? r.json() as Promise<Ad[]> : []).catch(() => []) as Promise<Ad[]>,
+  fetch(`${import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000'}/api/ads?position=article_end&limit=1`).then(r => r.ok ? r.json() as Promise<Ad[]> : []).catch(() => []) as Promise<Ad[]>,
 ]);
 
 const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
@@ -41,12 +52,27 @@ const published = article.published_at
   : article.created_at
   ? new Date(article.created_at)
   : null;
+const publishedLabel = published
+  ? published.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
+  : null;
 
 const pageUrl = Astro.url?.href ?? '';
 const articleSlugValue = slug ?? '';
 const adsClient = 'ca-pub-7829004963088413';
 const articleMidAdSlot = import.meta.env.PUBLIC_ADS_SLOT_ARTICLE_MID || '';
 const articleEndAdSlot = import.meta.env.PUBLIC_ADS_SLOT_ARTICLE_END || '';
+const manualMidAd = adsMid?.[0];
+const manualEndAd = adsEnd?.[0];
+const midImage = manualMidAd?.image_url
+  ? manualMidAd.image_url.startsWith('http')
+    ? manualMidAd.image_url
+    : `${apiBase}${manualMidAd.image_url}`
+  : null;
+const endImage = manualEndAd?.image_url
+  ? manualEndAd.image_url.startsWith('http')
+    ? manualEndAd.image_url
+    : `${apiBase}${manualEndAd.image_url}`
+  : null;
 ---
 
 <Layout title={article.title} description={article.excerpt || article.title}>
@@ -61,7 +87,7 @@ const articleEndAdSlot = import.meta.env.PUBLIC_ADS_SLOT_ARTICLE_END || '';
     <div class="p-6 space-y-4">
       <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500">
         <span class="text-ctv-accent font-bold uppercase">Noticia</span>
-        {published && <span>{published.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}</span>}
+        {publishedLabel ? <span>{publishedLabel}</span> : null}
         <span>Vistas: {article.views_count}</span>
       </div>
 
@@ -70,27 +96,20 @@ const articleEndAdSlot = import.meta.env.PUBLIC_ADS_SLOT_ARTICLE_END || '';
 
       <div class="prose prose-lg max-w-none text-gray-900 prose-headings:font-black prose-a:text-ctv-accent" set:html={article.content}></div>
 
-      {articleMidAdSlot && (
+      {(manualMidAd || articleMidAdSlot) && (
         <div class="my-6">
-          <div class="ad-box">
-            <span class="ad-label">Publicidad</span>
-            <ins class="adsbygoogle block w-full"
-              style="display:block"
-              data-ad-client={adsClient}
-              data-ad-slot={articleMidAdSlot}
-              data-ad-format="auto"
-              data-full-width-responsive="true"></ins>
-          </div>
-          <script is:inline>
-            const requestAdMid = () => {
-              try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
-            };
-            if (window.adsbygoogle) {
-              requestAdMid();
-            } else {
-              document.addEventListener('adsbygoogleLoaded', requestAdMid, { once: true });
-            }
-          </script>
+          {manualMidAd ? (
+            manualMidAd.html_snippet ? (
+              <div class="ad-shell ad-article_mid" set:html={manualMidAd.html_snippet}></div>
+            ) : midImage ? (
+              <a class="ad-shell ad-article_mid" href={manualMidAd.target_url || '#'} target="_blank" rel="noreferrer">
+                <span class="ad-label">Publicidad</span>
+                <img src={midImage} alt={manualMidAd.title} class="ad-frame" loading="lazy" style="object-fit:contain;" />
+              </a>
+            ) : null
+          ) : (
+            <AdSlot client={adsClient} slot={articleMidAdSlot} slotType="article_mid" />
+          )}
         </div>
       )}
 
@@ -132,28 +151,22 @@ const articleEndAdSlot = import.meta.env.PUBLIC_ADS_SLOT_ARTICLE_END || '';
     </div>
   </section>
 
-  {articleEndAdSlot && (
+  {(manualEndAd || articleEndAdSlot) && (
     <section class="max-w-5xl mx-auto mt-8">
       <div class="bg-white shadow rounded-lg p-4">
         <h2 class="text-xl font-black text-ctv-primary uppercase mb-3">Publicidad</h2>
-        <div class="ad-box">
-          <ins class="adsbygoogle block w-full"
-            style="display:block"
-            data-ad-client={adsClient}
-            data-ad-slot={articleEndAdSlot}
-            data-ad-format="auto"
-            data-full-width-responsive="true"></ins>
-        </div>
-        <script is:inline>
-          const requestAdEnd = () => {
-            try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
-          };
-          if (window.adsbygoogle) {
-            requestAdEnd();
-          } else {
-            document.addEventListener('adsbygoogleLoaded', requestAdEnd, { once: true });
-          }
-        </script>
+        {manualEndAd ? (
+          manualEndAd.html_snippet ? (
+            <div class="ad-shell ad-article_end" set:html={manualEndAd.html_snippet}></div>
+          ) : endImage ? (
+            <a class="ad-shell ad-article_end" href={manualEndAd.target_url || '#'} target="_blank" rel="noreferrer">
+              <span class="ad-label">Publicidad</span>
+              <img src={endImage} alt={manualEndAd.title} class="ad-frame" loading="lazy" style="object-fit:contain;" />
+            </a>
+          ) : null
+        ) : (
+          <AdSlot client={adsClient} slot={articleEndAdSlot} slotType="article_end" showLabel={false} />
+        )}
       </div>
     </section>
   )}
