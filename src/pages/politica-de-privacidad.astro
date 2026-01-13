@@ -1,0 +1,111 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const siteName = 'CTV Barranquilla';
+const siteUrl = 'https://ctvbarranquilla.com';
+const contactEmail = 'contacto@ctvbarranquilla.com';
+const updated = 'Abril 2024';
+---
+
+<Layout title="Política de privacidad" description={`Política de privacidad de ${siteName}`}>
+  <article class="max-w-4xl mx-auto bg-white shadow rounded-lg p-6 space-y-6">
+    <header class="space-y-2">
+      <p class="text-sm text-gray-500">Última actualización: {updated}</p>
+      <h1 class="text-3xl font-black text-ctv-primary">Política de privacidad</h1>
+      <p class="text-gray-700">
+        Esta política describe cómo {siteName} (“nosotros”) recopila, usa y comparte información cuando visitas
+        {` ${siteUrl}`} y nuestros servicios asociados.
+      </p>
+    </header>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Responsable del tratamiento</h2>
+      <p class="text-gray-700">
+        {siteName}, {siteUrl}. Para cualquier duda o solicitud relacionada con tus datos personales, escríbenos a
+        {` ${contactEmail}`}.
+      </p>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Datos que podemos recopilar</h2>
+      <ul class="list-disc pl-5 space-y-1 text-gray-700">
+        <li>Datos técnicos: dirección IP, tipo de dispositivo/navegador, sistema operativo, páginas visitadas.</li>
+        <li>Datos de uso: interacciones con contenidos, tiempos de lectura, clics en enlaces o anuncios.</li>
+        <li>
+          Datos que proporcionas al comentar con Facebook: se gestionan en Facebook y están sujetos a sus términos.
+        </li>
+        <li>Cookies y tecnologías similares para métricas, personalización y gestión de anuncios.</li>
+      </ul>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Finalidades y bases legales</h2>
+      <ul class="list-disc pl-5 space-y-1 text-gray-700">
+        <li>Prestar y optimizar el servicio (interés legítimo).</li>
+        <li>Medir audiencia y rendimiento de contenido (interés legítimo/consentimiento según jurisdicción).</li>
+        <li>Mostrar publicidad, incluyendo anuncios personalizados si das consentimiento.</li>
+        <li>
+          Facilitar comentarios a través de Facebook (consentimiento y relación con el servicio de Meta Platforms).
+        </li>
+        <li>Atender solicitudes, ejercer derechos y cumplir obligaciones legales.</li>
+      </ul>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Cookies y anuncios</h2>
+      <p class="text-gray-700">
+        Usamos Google AdSense y otros proveedores publicitarios que pueden colocar cookies o identificadores para
+        personalizar anuncios y medir su rendimiento. Puedes gestionar tu consentimiento desde el aviso de cookies en
+        el sitio o configurando tu navegador para rechazar cookies.
+      </p>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Comentarios de Facebook</h2>
+      <p class="text-gray-700">
+        El módulo de comentarios es proporcionado por Facebook. Al usarlo, Facebook puede recibir información sobre tu
+        sesión y actividad en el sitio y tratarla conforme a sus políticas. Puedes gestionar tus comentarios o
+        eliminar tu cuenta directamente desde Facebook.
+      </p>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Conservación de datos</h2>
+      <p class="text-gray-700">
+        Conservamos los datos el tiempo necesario para las finalidades indicadas o según lo exija la ley. Los datos
+        tratados por terceros (p. ej., Facebook o Google) siguen sus propios periodos de retención.
+      </p>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Tus derechos</h2>
+      <p class="text-gray-700">
+        Puedes solicitar acceso, corrección, actualización o eliminación de tus datos, así como oponerte o limitar su
+        tratamiento cuando proceda. Para ejercerlos, contáctanos en {contactEmail}.
+      </p>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Enlaces y servicios de terceros</h2>
+      <p class="text-gray-700">
+        Nuestro sitio puede enlazar a otros servicios. No controlamos sus prácticas, por lo que te recomendamos revisar
+        sus políticas de privacidad.
+      </p>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Actualizaciones</h2>
+      <p class="text-gray-700">
+        Podemos modificar esta política para reflejar cambios legales o de operación. Publicaremos la versión vigente en
+        esta página e indicaremos la fecha de actualización.
+      </p>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Contacto</h2>
+      <p class="text-gray-700">
+        Si tienes preguntas sobre esta política o sobre tus datos personales, escríbenos a {contactEmail}.
+      </p>
+    </section>
+  </article>
+</Layout>
