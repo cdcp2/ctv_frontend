@@ -58,6 +58,7 @@ const publishedLabel = published
 
 const pageUrl = Astro.url?.href ?? '';
 const articleSlugValue = slug ?? '';
+const commentHref = `https://ctvbarranquilla.com/article/${articleSlugValue}`;
 const adsClient = 'ca-pub-7829004963088413';
 const articleMidAdSlot = import.meta.env.PUBLIC_ADS_SLOT_ARTICLE_MID || '';
 const articleEndAdSlot = import.meta.env.PUBLIC_ADS_SLOT_ARTICLE_END || '';
@@ -127,7 +128,7 @@ const endImage = manualEndAd?.image_url
     <h2 class="text-xl font-black text-ctv-primary uppercase">Comentarios</h2>
     <div id="fb-root"></div>
     <div class="bg-white shadow rounded-lg p-4">
-      <div class="fb-comments" data-href={pageUrl || undefined} data-width="100%" data-numposts="8"></div>
+      <div class="fb-comments" data-href={commentHref} data-width="100%" data-numposts="8"></div>
       <p class="text-xs text-gray-500 mt-2">Usa tu cuenta de Facebook para comentar esta nota.</p>
     </div>
   </section>
@@ -175,6 +176,7 @@ const endImage = manualEndAd?.image_url
     is:inline
     data-slug={articleSlugValue}
     data-fb-app-id={fbAppId}
+    data-comment-url={commentHref}
   >
     const { dataset } = document.currentScript;
     const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
@@ -212,8 +214,9 @@ const endImage = manualEndAd?.image_url
 
     // Si data-href no viene en HTML (p.ej. entornos sin host conocido), usamos la URL actual
     const comments = document.querySelector('.fb-comments');
-    if (comments && !comments.getAttribute('data-href')) {
-      comments.setAttribute('data-href', window.location.href);
+    if (comments) {
+      const preset = comments.getAttribute('data-href') || dataset.commentUrl || window.location.href;
+      comments.setAttribute('data-href', preset);
       if (window.FB?.XFBML?.parse) window.FB.XFBML.parse();
     }
   </script>
