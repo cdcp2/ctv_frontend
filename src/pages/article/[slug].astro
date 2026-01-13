@@ -184,6 +184,7 @@ const endImage = manualEndAd?.image_url
     fetch(`${apiBase}/api/articles/${articleSlug}/view`, { method: 'POST' }).catch(() => {});
 
     const fbAppId = dataset.fbAppId || '';
+    const commentUrl = dataset.commentUrl || window.location.href;
 
     // Inicializamos el SDK si se provee App ID; si no, solo parseamos XFBML
     window.fbAsyncInit = function() {
@@ -193,8 +194,10 @@ const endImage = manualEndAd?.image_url
           xfbml: true,
           version: 'v17.0'
         });
-      } else if (window.FB?.XFBML?.parse) {
-        window.FB.XFBML.parse();
+      }
+      if (window.FB?.XFBML?.parse) {
+        const root = document.getElementById('comments') || undefined;
+        window.FB.XFBML.parse(root);
       }
     };
 
@@ -215,9 +218,9 @@ const endImage = manualEndAd?.image_url
     // Si data-href no viene en HTML (p.ej. entornos sin host conocido), usamos la URL actual
     const comments = document.querySelector('.fb-comments');
     if (comments) {
-      const preset = comments.getAttribute('data-href') || dataset.commentUrl || window.location.href;
+      const preset = comments.getAttribute('data-href') || commentUrl;
       comments.setAttribute('data-href', preset);
-      if (window.FB?.XFBML?.parse) window.FB.XFBML.parse();
+      if (window.FB?.XFBML?.parse) window.FB.XFBML.parse(comments.parentElement || undefined);
     }
   </script>
 </Layout>
