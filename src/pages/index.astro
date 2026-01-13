@@ -129,21 +129,50 @@ const sidebarImage = manualSidebar?.image_url
       )}
     </div>
 
-    <aside class="bg-white shadow rounded-lg p-4">
-      <h3 class="text-2xl font-black text-ctv-accent mb-4 uppercase">Destacado</h3>
-      <div class="space-y-4">
-        {featuredList.length === 0 && <p class="text-sm text-gray-500">Aún no hay destacados.</p>}
-        {featuredList.map((item, idx) => (
-          <a href={`/article/${item.slug}`} class="flex gap-3 p-3 hover:bg-gray-50 rounded transition">
-            <span class="text-ctv-accent font-black text-xl">{idx + 1}</span>
-            <div>
-              <p class="font-bold leading-tight">{item.title}</p>
-              {item.excerpt && <p class="text-sm text-gray-600 mt-1 line-clamp-2">{item.excerpt}</p>}
-            </div>
-          </a>
-        ))}
-      </div>
-    </aside>
+    <div class="space-y-6">
+      <aside class="bg-white shadow rounded-lg p-4">
+        <h3 class="text-2xl font-black text-ctv-accent mb-4 uppercase">Destacado</h3>
+        <div class="space-y-4">
+          {featuredList.length === 0 && <p class="text-sm text-gray-500">Aún no hay destacados.</p>}
+          {featuredList.map((item, idx) => (
+            <a href={`/article/${item.slug}`} class="flex gap-3 p-3 hover:bg-gray-50 rounded transition">
+              <span class="text-ctv-accent font-black text-xl">{idx + 1}</span>
+              <div>
+                <p class="font-bold leading-tight">{item.title}</p>
+                {item.excerpt && <p class="text-sm text-gray-600 mt-1 line-clamp-2">{item.excerpt}</p>}
+              </div>
+            </a>
+          ))}
+        </div>
+      </aside>
+
+      {(manualSidebar || homeSideAdSlot) && (
+        <div class="bg-white shadow rounded-lg p-4">
+          <h3 class="text-xl font-black text-ctv-primary uppercase mb-3">Publicidad</h3>
+          {manualSidebar ? (
+            manualSidebar.html_snippet ? (
+              <div class="ad-shell ad-sidebar">
+                <div class="ad-frame" set:html={manualSidebar.html_snippet}></div>
+              </div>
+            ) : sidebarImage ? (
+              <div class="ad-shell ad-sidebar">
+                <a href={manualSidebar.target_url || '#'} target="_blank" rel="noreferrer">
+                  <img
+                    src={sidebarImage}
+                    alt={manualSidebar.title}
+                    class="ad-frame"
+                    loading="lazy"
+                    style="object-fit:contain;"
+                  />
+                </a>
+              </div>
+            ) : null
+          ) : (
+            <AdSlot client={adsClient} slot={homeSideAdSlot} slotType="sidebar" showLabel={false} />
+          )}
+        </div>
+      )}
+    </div>
   </section>
 
   <section class="mt-10 grid lg:grid-cols-[2fr,1fr] gap-8">
@@ -207,33 +236,6 @@ const sidebarImage = manualSidebar?.image_url
           ))}
         </div>
       </div>
-
-      {(manualSidebar || homeSideAdSlot) && (
-        <div class="bg-white shadow rounded-lg p-4">
-          <h3 class="text-xl font-black text-ctv-primary uppercase mb-3">Publicidad</h3>
-          {manualSidebar ? (
-            manualSidebar.html_snippet ? (
-              <div class="ad-shell ad-sidebar">
-                <div class="ad-frame" set:html={manualSidebar.html_snippet}></div>
-              </div>
-            ) : sidebarImage ? (
-              <div class="ad-shell ad-sidebar">
-                <a href={manualSidebar.target_url || '#'} target="_blank" rel="noreferrer">
-                  <img
-                    src={sidebarImage}
-                    alt={manualSidebar.title}
-                    class="ad-frame"
-                    loading="lazy"
-                    style="object-fit:contain;"
-                  />
-                </a>
-              </div>
-            ) : null
-          ) : (
-            <AdSlot client={adsClient} slot={homeSideAdSlot} slotType="sidebar" showLabel={false} />
-          )}
-        </div>
-      )}
     </div>
   </section>
 
