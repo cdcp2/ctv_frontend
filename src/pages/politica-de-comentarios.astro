@@ -1,0 +1,79 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const siteName = 'CTV Barranquilla';
+const contactEmail = 'contacto@ctvbarranquilla.com';
+const updated = 'Mayo 2025';
+const moderationWindow = '09:00 a 18:00 (GMT-5), lunes a viernes';
+---
+
+<Layout title="Política de comentarios" description={`Normas de participación en ${siteName}`}>
+  <article class="max-w-4xl mx-auto bg-white shadow rounded-lg p-6 space-y-6">
+    <header class="space-y-2">
+      <p class="text-sm text-gray-500">Última actualización: {updated}</p>
+      <h1 class="text-3xl font-black text-ctv-primary">Política de comentarios</h1>
+      <p class="text-gray-700">
+        Buscamos un espacio de conversación respetuoso y útil para toda la comunidad de {siteName}. Al comentar aceptas
+        estas reglas de convivencia y las condiciones de nuestro proveedor de comentarios.
+      </p>
+    </header>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Principios básicos</h2>
+      <ul class="list-disc pl-5 space-y-1 text-gray-700">
+        <li>Respeto: debate ideas, no personas.</li>
+        <li>Relevancia: mantén el comentario relacionado con la nota o el tema del hilo.</li>
+        <li>Claridad: evita mayúsculas sostenidas, spam o enlaces sin contexto.</li>
+      </ul>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Contenido no permitido</h2>
+      <ul class="list-disc pl-5 space-y-1 text-gray-700">
+        <li>Discursos de odio, amenazas, acoso, insultos o incitación a la violencia.</li>
+        <li>Información personal de terceros (doxxing) o datos sensibles sin consentimiento.</li>
+        <li>Desinformación grave, apología de delitos o suplantación de identidad.</li>
+        <li>Publicidad no solicitada, cadenas, phishing o cualquier otra forma de spam.</li>
+        <li>Contenido ilegal según la ley colombiana o los términos del proveedor de comentarios.</li>
+      </ul>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Moderación y medidas</h2>
+      <p class="text-gray-700">
+        Moderamos de forma preventiva y reactiva. Las revisiones manuales suelen hacerse en horario {moderationWindow}.
+      </p>
+      <ul class="list-disc pl-5 space-y-1 text-gray-700">
+        <li>Podemos ocultar, editar o eliminar comentarios que incumplan estas reglas.</li>
+        <li>Podemos cerrar hilos o suspender usuarios con reincidencia o faltas graves.</li>
+        <li>Las denuncias de la comunidad se revisan; las decisiones finales quedan a nuestro criterio editorial.</li>
+        <li>Si detectamos riesgos legales o de seguridad, podremos escalar el caso a las autoridades competentes.</li>
+      </ul>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Sobre la plataforma</h2>
+      <ul class="list-disc pl-5 space-y-1 text-gray-700">
+        <li>Usamos Disqus para gestionar los comentarios. Al participar aceptas sus términos y política de privacidad.</li>
+        <li>El perfil, los datos y las acciones dentro del módulo se manejan directamente en Disqus.</li>
+        <li>Evita publicar datos sensibles; los comentarios son públicos y pueden ser indexados por buscadores.</li>
+      </ul>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Reportes y contacto</h2>
+      <p class="text-gray-700">
+        Si ves un comentario que incumple estas reglas, usa la función de reporte del módulo o escríbenos a
+        {` ${contactEmail}`}. Incluye el enlace de la nota y, si es posible, una captura.
+      </p>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-xl font-black text-ctv-primary">Actualizaciones</h2>
+      <p class="text-gray-700">
+        Podemos ajustar esta política para reflejar cambios en la moderación, la ley o el proveedor de comentarios. La
+        versión vigente siempre estará publicada en esta página.
+      </p>
+    </section>
+  </article>
+</Layout>

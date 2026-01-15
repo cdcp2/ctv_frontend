@@ -14,7 +14,7 @@ type Ad = {
 export const prerender = false;
 
 const { slug } = Astro.params;
-const fbAppId = import.meta.env.PUBLIC_FB_APP_ID || '';
+const disqusShortname = import.meta.env.PUBLIC_DISQUS_SHORTNAME || '';
 const article = slug ? await getArticle(slug) : null;
 
 if (!article) {
@@ -56,9 +56,10 @@ const publishedLabel = published
   ? published.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
   : null;
 
-const pageUrl = Astro.url?.href ?? '';
 const articleSlugValue = slug ?? '';
-const commentHref = `https://ctvbarranquilla.com/article/${articleSlugValue}`;
+const pageUrl = Astro.url?.href ?? '';
+const fallbackCommentUrl = `https://ctvbarranquilla.com/article/${articleSlugValue}`;
+const commentHref = pageUrl || fallbackCommentUrl;
 const adsClient = 'ca-pub-7829004963088413';
 const articleMidAdSlot = import.meta.env.PUBLIC_ADS_SLOT_ARTICLE_MID || '';
 const articleEndAdSlot = import.meta.env.PUBLIC_ADS_SLOT_ARTICLE_END || '';
@@ -126,10 +127,15 @@ const endImage = manualEndAd?.image_url
 
   <section class="max-w-5xl mx-auto mt-10 space-y-4" id="comments">
     <h2 class="text-xl font-black text-ctv-primary uppercase">Comentarios</h2>
-    <div id="fb-root"></div>
     <div class="bg-white shadow rounded-lg p-4">
-      <div class="fb-comments" data-href={commentHref} data-width="100%" data-numposts="8"></div>
-      <p class="text-xs text-gray-500 mt-2">Usa tu cuenta de Facebook para comentar esta nota.</p>
+      {disqusShortname ? (
+        <>
+          <div id="disqus_thread"></div>
+          <p class="text-xs text-gray-500 mt-2">Comentarios proporcionados por Disqus.</p>
+        </>
+      ) : (
+        <p class="text-sm text-gray-600">Configura la variable <code>PUBLIC_DISQUS_SHORTNAME</code> para habilitar los comentarios.</p>
+      )}
     </div>
   </section>
 
@@ -175,52 +181,39 @@ const endImage = manualEndAd?.image_url
   <script
     is:inline
     data-slug={articleSlugValue}
-    data-fb-app-id={fbAppId}
     data-comment-url={commentHref}
+    data-disqus-shortname={disqusShortname}
   >
     const { dataset } = document.currentScript;
     const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
     const articleSlug = dataset.slug || '';
     fetch(`${apiBase}/api/articles/${articleSlug}/view`, { method: 'POST' }).catch(() => {});
 
-    const fbAppId = dataset.fbAppId || '';
     const commentUrl = dataset.commentUrl || window.location.href;
+    const disqusShortname = dataset.disqusShortname || '';
 
-    // Inicializamos el SDK si se provee App ID; si no, solo parseamos XFBML
-    window.fbAsyncInit = function() {
-      if (fbAppId && window.FB?.init) {
-        window.FB.init({
-          appId: fbAppId,
-          xfbml: true,
-          version: 'v17.0'
-        });
-      }
-      if (window.FB?.XFBML?.parse) {
-        const root = document.getElementById('comments') || undefined;
-        window.FB.XFBML.parse(root);
-      }
-    };
+    if (disqusShortname) {
+      window.disqus_config = function () {
+        this.page.url = commentUrl;
+        this.page.identifier = articleSlug || commentUrl;
+        this.page.title = document.title;
+      };
 
-    // Cargamos el SDK de Facebook solo si no está presente
-    (function loadFB(d, s, id) {
-      const existing = d.getElementById(id);
-      if (existing) {
-        if (window.FB?.XFBML?.parse) window.FB.XFBML.parse();
-        return;
+      const existing = document.getElementById('dsq-embed-scr');
+      if (!existing) {
+        const d = document;
+        const s = d.createElement('script');
+        s.src = `https://${disqusShortname}.disqus.com/embed.js`;
+        s.id = 'dsq-embed-scr';
+        s.setAttribute('data-timestamp', `${Date.now()}`);
+        s.async = true;
+        (d.body || d.head).appendChild(s);
       }
-      const js = d.createElement(s); js.id = id;
-      const appParam = fbAppId ? `&appId=${encodeURIComponent(fbAppId)}` : '';
-      js.src = `https://connect.facebook.net/es_LA/sdk.js#xfbml=1&version=v17.0${appParam}`;
-      const fjs = d.getElementsByTagName(s)[0];
-      fjs.parentNode.insertBefore(js, fjs);
-    })(document, 'script', 'facebook-jssdk');
-
-    // Si data-href no viene en HTML (p.ej. entornos sin host conocido), usamos la URL actual
-    const comments = document.querySelector('.fb-comments');
-    if (comments) {
-      const preset = comments.getAttribute('data-href') || commentUrl;
-      comments.setAttribute('data-href', preset);
-      if (window.FB?.XFBML?.parse) window.FB.XFBML.parse(comments.parentElement || undefined);
+    } else {
+      const placeholder = document.getElementById('disqus_thread');
+      if (placeholder) {
+        placeholder.innerHTML = '<p class="text-sm text-gray-600">Comentarios no disponibles: falta configurar Disqus.</p>';
+      }
     }
   </script>
 </Layout>
