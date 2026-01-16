@@ -33,7 +33,9 @@ const latestList = latest?.slice(0, 8) ?? [];
 const videoCandidates = videos && videos.length ? videos : (latest ?? []).filter(item => !!item.video_embed_url);
 const videoList = videoCandidates.slice(0, 6);
 const mostReadList = mostRead?.slice(0, 6) ?? [];
-const tagList = tags?.slice(0, 12) ?? [];
+const tagList = tags ?? [];
+const initialTagLimit = 10;
+const tagChunkSize = 8;
 
 const resolveMedia = (url?: string | null) => {
   if (!url) return null;
@@ -93,40 +95,62 @@ const sidebarImage = manualSidebar?.image_url
 
 <Layout title="Inicio">
   <section class="grid lg:grid-cols-[2fr,1fr] gap-8 items-start">
-    <div class="bg-white shadow rounded-lg overflow-hidden">
-      <div class="px-4 pt-4 flex items-center justify-between">
-        <h2 class="text-lg font-black uppercase text-ctv-accent">Señal en vivo</h2>
-      </div>
-      <div class="aspect-video bg-ctv-dark/5">
-        {liveKind?.kind === 'file' ? (
-          <video src={liveKind.url} class="w-full h-full" controls autoplay muted playsinline preload="none"></video>
-        ) : (
-          <iframe
-            src={liveKind?.kind === 'embed' ? liveKind.url : playerEmbed}
-            class="w-full h-full"
-            allow="autoplay; encrypted-media"
-            allowfullscreen
-            title="Señal en vivo"
-          ></iframe>
+    <div class="space-y-8">
+      <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-4 pt-4 flex items-center justify-between">
+          <h2 class="text-lg font-black uppercase text-ctv-accent">Señal en vivo</h2>
+        </div>
+        <div class="aspect-video bg-ctv-dark/5">
+          {liveKind?.kind === 'file' ? (
+            <video src={liveKind.url} class="w-full h-full" controls autoplay muted playsinline preload="none"></video>
+          ) : (
+            <iframe
+              src={liveKind?.kind === 'embed' ? liveKind.url : playerEmbed}
+              class="w-full h-full"
+              allow="autoplay; encrypted-media"
+              allowfullscreen
+              title="Señal en vivo"
+            ></iframe>
+          )}
+        </div>
+
+        {(manualHomeTop || homeTopAdSlot) && (
+          <div class="p-4">
+            {manualHomeTop ? (
+              manualHomeTop.html_snippet ? (
+                <div class="ad-shell ad-home_top" set:html={manualHomeTop.html_snippet}></div>
+              ) : homeTopImage ? (
+                <a class="ad-shell ad-home_top" href={manualHomeTop.target_url || '#'} target="_blank" rel="noreferrer">
+                  <span class="ad-label">Publicidad</span>
+                  <img src={homeTopImage} alt={manualHomeTop.title} class="ad-frame" loading="lazy" style="object-fit:contain;" />
+                </a>
+              ) : null
+            ) : (
+              <AdSlot client={adsClient} slot={homeTopAdSlot} slotType="home_top" />
+            )}
+          </div>
         )}
       </div>
 
-      {(manualHomeTop || homeTopAdSlot) && (
-        <div class="p-4">
-          {manualHomeTop ? (
-            manualHomeTop.html_snippet ? (
-              <div class="ad-shell ad-home_top" set:html={manualHomeTop.html_snippet}></div>
-            ) : homeTopImage ? (
-              <a class="ad-shell ad-home_top" href={manualHomeTop.target_url || '#'} target="_blank" rel="noreferrer">
-                <span class="ad-label">Publicidad</span>
-                <img src={homeTopImage} alt={manualHomeTop.title} class="ad-frame" loading="lazy" style="object-fit:contain;" />
-              </a>
-            ) : null
-          ) : (
-            <AdSlot client={adsClient} slot={homeTopAdSlot} slotType="home_top" />
-          )}
+      <div class="bg-white shadow rounded-lg p-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-black text-ctv-primary uppercase">Últimas noticias</h3>
+          <a href="/" class="text-sm text-ctv-accent font-semibold">Ver todas</a>
         </div>
-      )}
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6" data-latest-list>
+          {latestList.length === 0 && <p class="text-sm text-gray-500">No hay noticias aún.</p>}
+          {latestList.map((item) => (
+            <a href={`/article/${item.slug}`} class="bg-white shadow-sm border border-gray-100 rounded-lg overflow-hidden hover:-translate-y-1 transition transform">
+              {resolveMedia(item.main_image_url) && <img src={resolveMedia(item.main_image_url)!} alt={item.title} class="w-full h-36 object-cover" loading="lazy" />}
+              <div class="p-4 space-y-2">
+                <p class="text-xs uppercase tracking-wide text-ctv-accent font-bold">Noticia</p>
+                <h4 class="font-bold leading-tight line-clamp-2">{item.title}</h4>
+                {item.excerpt && <p class="text-sm text-gray-600 line-clamp-2">{item.excerpt}</p>}
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
     </div>
 
     <div class="space-y-6">
@@ -172,41 +196,26 @@ const sidebarImage = manualSidebar?.image_url
           )}
         </div>
       )}
-    </div>
-  </section>
 
-  <section class="mt-8 grid lg:grid-cols-[2fr,1fr] gap-8">
-    <div>
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-black text-ctv-primary uppercase">Últimas noticias</h3>
-        <a href="/" class="text-sm text-ctv-accent font-semibold">Ver todas</a>
-      </div>
-      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6" data-latest-list>
-        {latestList.length === 0 && <p class="text-sm text-gray-500">No hay noticias aún.</p>}
-        {latestList.map((item) => (
-          <a href={`/article/${item.slug}`} class="bg-white shadow rounded-lg overflow-hidden hover:-translate-y-1 transition transform">
-            {resolveMedia(item.main_image_url) && <img src={resolveMedia(item.main_image_url)!} alt={item.title} class="w-full h-40 object-cover" loading="lazy" />}
-            <div class="p-4 space-y-2">
-              <p class="text-xs uppercase tracking-wide text-ctv-accent font-bold">Noticia</p>
-              <h4 class="font-bold leading-tight line-clamp-2">{item.title}</h4>
-              {item.excerpt && <p class="text-sm text-gray-600 line-clamp-2">{item.excerpt}</p>}
-            </div>
-          </a>
-        ))}
-      </div>
-    </div>
-
-    <div class="space-y-8">
       <div class="bg-white shadow rounded-lg p-4">
         <h3 class="text-xl font-black text-ctv-primary uppercase mb-3">Tags</h3>
-        <div class="flex flex-wrap gap-2">
+        <div id="tag-list" class="flex flex-wrap gap-2" data-initial={initialTagLimit} data-chunk={tagChunkSize}>
           {tagList.length === 0 && <p class="text-sm text-gray-500">Sin tags aún.</p>}
-          {tagList.map(tag => (
-            <a href={`/tag/${tag.slug}`} class="text-xs bg-ctv-primary/10 text-ctv-primary px-2 py-1 rounded-full hover:bg-ctv-primary/20 transition">
+          {tagList.map((tag, idx) => (
+            <a
+              href={`/tag/${tag.slug}`}
+              class={`text-xs bg-ctv-primary/10 text-ctv-primary px-2 py-1 rounded-full hover:bg-ctv-primary/20 transition ${idx >= initialTagLimit ? 'hidden' : ''}`}
+              data-idx={idx}
+            >
               #{tag.name}
             </a>
           ))}
         </div>
+        {tagList.length > initialTagLimit && (
+          <button id="tag-more" class="mt-3 text-sm font-semibold text-ctv-accent hover:underline" data-state="collapsed">
+            Ver más
+          </button>
+        )}
       </div>
 
       <div class="bg-white shadow rounded-lg p-4">
@@ -238,6 +247,47 @@ const sidebarImage = manualSidebar?.image_url
       </div>
     </div>
   </section>
+
+  <script is:inline>
+    document.addEventListener('DOMContentLoaded', () => {
+      const list = document.getElementById('tag-list');
+      const btn = document.getElementById('tag-more');
+      if (!list || !btn) return;
+      const initial = Number(list.dataset.initial || '10');
+      const chunk = Number(list.dataset.chunk || '8');
+      const items = Array.from(list.querySelectorAll('[data-idx]'));
+      let shown = initial;
+
+      const render = () => {
+        items.forEach((el) => {
+          const idx = Number(el.getAttribute('data-idx') || '0');
+          if (idx < shown) {
+            el.classList.remove('hidden');
+          } else {
+            el.classList.add('hidden');
+          }
+        });
+        if (shown >= items.length) {
+          btn.textContent = 'Ver menos';
+          btn.dataset.state = 'expanded';
+        } else {
+          btn.textContent = 'Ver más';
+          btn.dataset.state = 'collapsed';
+        }
+      };
+
+      btn.addEventListener('click', () => {
+        if (btn.dataset.state === 'collapsed') {
+          shown = Math.min(items.length, shown + chunk);
+        } else {
+          shown = initial;
+        }
+        render();
+      });
+
+      render();
+    });
+  </script>
 
   <script
     is:inline
@@ -299,11 +349,11 @@ const sidebarImage = manualSidebar?.image_url
         if (!container) return;
         const tpl = data
           .map(
-            (item, idx) => `
-              <a href="/article/${item.slug}" class="bg-white shadow rounded-lg overflow-hidden hover:-translate-y-1 transition transform block">
-                ${item.main_image_url ? `<img src="${item.main_image_url.startsWith('http') ? item.main_image_url : `${apiBase}${item.main_image_url}`}" alt="${item.title}" class="w-full h-40 object-cover" loading="lazy" />` : ''}
+            (item) => `
+              <a href="/article/${item.slug}" class="bg-white shadow-sm border border-gray-100 rounded-lg overflow-hidden hover:-translate-y-1 transition transform block">
+                ${item.main_image_url ? `<img src="${item.main_image_url.startsWith('http') ? item.main_image_url : `${apiBase}${item.main_image_url}`}" alt="${item.title}" class="w-full h-36 object-cover" loading="lazy" />` : ''}
                 <div class="p-4 space-y-2">
-                  <p class="text-xs uppercase tracking-wide text-ctv-accent font-bold">${idx !== undefined ? 'Noticia' : 'Noticia'}</p>
+                  <p class="text-xs uppercase tracking-wide text-ctv-accent font-bold">Noticia</p>
                   <h4 class="font-bold leading-tight line-clamp-2">${item.title}</h4>
                   ${item.excerpt ? `<p class="text-sm text-gray-600 line-clamp-2">${item.excerpt}</p>` : ''}
                 </div>
