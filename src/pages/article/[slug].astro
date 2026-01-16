@@ -162,25 +162,7 @@ const endImage = manualEndAd?.image_url
     </div>
   </section>
 
-  {(manualEndAd || articleEndAdSlot) && (
-    <section class="max-w-5xl mx-auto mt-8">
-      <div class="bg-white shadow rounded-lg p-4">
-        <h2 class="text-xl font-black text-ctv-primary uppercase mb-3">Publicidad</h2>
-        {manualEndAd ? (
-          manualEndAd.html_snippet ? (
-            <div class="ad-shell ad-article_end" set:html={manualEndAd.html_snippet}></div>
-          ) : endImage ? (
-            <a class="ad-shell ad-article_end" href={manualEndAd.target_url || '#'} target="_blank" rel="noreferrer">
-              <span class="ad-label">Publicidad</span>
-              <img src={endImage} alt={manualEndAd.title} class="ad-frame" loading="lazy" style="object-fit:contain;" />
-            </a>
-          ) : null
-        ) : (
-          <AdSlot client={adsClient} slot={articleEndAdSlot} slotType="article_end" showLabel={false} />
-        )}
-      </div>
-    </section>
-  )}
+  {/* Publicidad al final removida a solicitud */}
 
   <script
     is:inline
