@@ -31,20 +31,20 @@ body {
     object-fit: contain;
 }
 .ad-shell.ad-home_top {
-    --ad-max-width: 970px;
-    --ad-max-height: 320px;
+    --ad-max-width: 100%;
+    --ad-max-height: 360px;
 }
 .ad-shell.ad-sidebar {
     --ad-max-width: 340px;
     --ad-max-height: 640px;
 }
 .ad-shell.ad-article_mid {
-    --ad-max-width: 380px;
-    --ad-max-height: 360px;
+    --ad-max-width: 100%;
+    --ad-max-height: 420px;
 }
 .ad-shell.ad-article_end {
-    --ad-max-width: 760px;
-    --ad-max-height: 200px;
+    --ad-max-width: 100%;
+    --ad-max-height: 240px;
 }
 @media (max-width: 1024px) {
     .ad-shell.ad-sidebar {
