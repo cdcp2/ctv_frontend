@@ -20,44 +20,39 @@ body {
     max-width: var(--ad-max-width, 100%);
     display: flex;
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
     gap: 0.35rem;
 }
 .ad-shell .ad-frame {
     width: 100%;
+    height: auto;
     display: block;
-    aspect-ratio: var(--ad-aspect, auto);
-    min-height: var(--ad-min-height, 120px);
-    max-height: 100%;
+    max-height: var(--ad-max-height, 100%);
     object-fit: contain;
 }
 .ad-shell.ad-home_top {
     --ad-max-width: 970px;
-    --ad-aspect: 970 / 250;
-    --ad-min-height: clamp(120px, 18vw, 260px);
+    --ad-max-height: 320px;
 }
 .ad-shell.ad-sidebar {
     --ad-max-width: 340px;
-    --ad-aspect: 1 / 2;
-    --ad-min-height: clamp(220px, 60vw, 600px);
+    --ad-max-height: 640px;
 }
 .ad-shell.ad-article_mid {
     --ad-max-width: 380px;
-    --ad-aspect: 6 / 5;
-    --ad-min-height: clamp(200px, 55vw, 320px);
+    --ad-max-height: 360px;
 }
 .ad-shell.ad-article_end {
     --ad-max-width: 760px;
-    --ad-aspect: 728 / 90;
-    --ad-min-height: clamp(90px, 20vw, 160px);
+    --ad-max-height: 200px;
 }
 @media (max-width: 1024px) {
     .ad-shell.ad-sidebar {
-        --ad-min-height: clamp(180px, 55vw, 420px);
+        --ad-max-height: 480px;
     }
     .ad-shell.ad-article_end {
         --ad-max-width: 560px;
-        --ad-aspect: 16 / 4.5;
+        --ad-max-height: 180px;
     }
 }
 @media (max-width: 640px) {
@@ -66,23 +61,19 @@ body {
     }
     .ad-shell.ad-home_top {
         --ad-max-width: 360px;
-        --ad-aspect: 16 / 5;
-        --ad-min-height: clamp(90px, 30vw, 160px);
+        --ad-max-height: 200px;
     }
     .ad-shell.ad-sidebar {
         --ad-max-width: 360px;
-        --ad-aspect: 3 / 4;
-        --ad-min-height: clamp(160px, 60vw, 320px);
+        --ad-max-height: 360px;
     }
     .ad-shell.ad-article_mid {
         --ad-max-width: 360px;
-        --ad-aspect: 4 / 3;
-        --ad-min-height: clamp(160px, 50vw, 280px);
+        --ad-max-height: 320px;
     }
     .ad-shell.ad-article_end {
         --ad-max-width: 360px;
-        --ad-aspect: 16 / 5;
-        --ad-min-height: clamp(80px, 22vw, 140px);
+        --ad-max-height: 160px;
     }
 }
 

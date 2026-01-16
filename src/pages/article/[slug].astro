@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import { getArticle, getRelated, getArticleTags } from '../../lib/api';
 import AdSlot from '../../components/AdSlot.astro';
+import DisqusThread from '../../components/DisqusThread';
 type Ad = {
   id: number;
   title: string;
@@ -129,10 +130,13 @@ const endImage = manualEndAd?.image_url
     <h2 class="text-xl font-black text-ctv-primary uppercase">Comentarios</h2>
     <div class="bg-white shadow rounded-lg p-4">
       {disqusShortname ? (
-        <>
-          <div id="disqus_thread"></div>
-          <p class="text-xs text-gray-500 mt-2">Comentarios proporcionados por Disqus.</p>
-        </>
+        <DisqusThread
+          client:only="react"
+          shortname={disqusShortname}
+          url={commentHref}
+          identifier={articleSlugValue}
+          title={article.title}
+        />
       ) : (
         <p class="text-sm text-gray-600">Configura la variable <code>PUBLIC_DISQUS_SHORTNAME</code> para habilitar los comentarios.</p>
       )}
@@ -188,32 +192,5 @@ const endImage = manualEndAd?.image_url
     const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
     const articleSlug = dataset.slug || '';
     fetch(`${apiBase}/api/articles/${articleSlug}/view`, { method: 'POST' }).catch(() => {});
-
-    const commentUrl = dataset.commentUrl || window.location.href;
-    const disqusShortname = dataset.disqusShortname || '';
-
-    if (disqusShortname) {
-      window.disqus_config = function () {
-        this.page.url = commentUrl;
-        this.page.identifier = articleSlug || commentUrl;
-        this.page.title = document.title;
-      };
-
-      const existing = document.getElementById('dsq-embed-scr');
-      if (!existing) {
-        const d = document;
-        const s = d.createElement('script');
-        s.src = `https://${disqusShortname}.disqus.com/embed.js`;
-        s.id = 'dsq-embed-scr';
-        s.setAttribute('data-timestamp', `${Date.now()}`);
-        s.async = true;
-        (d.body || d.head).appendChild(s);
-      }
-    } else {
-      const placeholder = document.getElementById('disqus_thread');
-      if (placeholder) {
-        placeholder.innerHTML = '<p class="text-sm text-gray-600">Comentarios no disponibles: falta configurar Disqus.</p>';
-      }
-    }
   </script>
 </Layout>
