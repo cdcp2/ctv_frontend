@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { getSiteConfig, getFeatured, getBreaking, getVideos, getMostRead, listArticles, type Tag } from '../lib/api';
+import { resolveMediaUrl } from '../lib/media';
 import AdSlot from '../components/AdSlot.astro';
 
 const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
@@ -37,12 +38,7 @@ const tagList = tags ?? [];
 const initialTagLimit = 10;
 const tagChunkSize = 8;
 
-const resolveMedia = (url?: string | null) => {
-  if (!url) return null;
-  if (url.startsWith('http')) return url;
-  if (url.startsWith('/')) return `${apiBase}${url}`;
-  return url;
-};
+const resolveMedia = (url?: string | null) => resolveMediaUrl(url, apiBase);
 
 function toEmbed(url?: string | null) {
   if (!url) return null;
@@ -81,16 +77,8 @@ const homeSideAdSlot = import.meta.env.PUBLIC_ADS_SLOT_HOME_SIDE || '';
 
 const manualHomeTop = adsHomeTop?.[0];
 const manualSidebar = adsSidebar?.[0];
-const homeTopImage = manualHomeTop?.image_url
-  ? manualHomeTop.image_url.startsWith('http')
-    ? manualHomeTop.image_url
-    : `${apiBase}${manualHomeTop.image_url}`
-  : null;
-const sidebarImage = manualSidebar?.image_url
-  ? manualSidebar.image_url.startsWith('http')
-    ? manualSidebar.image_url
-    : `${apiBase}${manualSidebar.image_url}`
-  : null;
+const homeTopImage = resolveMediaUrl(manualHomeTop?.image_url, apiBase);
+const sidebarImage = resolveMediaUrl(manualSidebar?.image_url, apiBase);
 ---
 
 <Layout title="Inicio">

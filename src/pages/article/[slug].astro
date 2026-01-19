@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getArticle, getRelated, getArticleTags } from '../../lib/api';
+import { resolveMediaUrl } from '../../lib/media';
 import AdSlot from '../../components/AdSlot.astro';
 import DisqusThread from '../../components/DisqusThread';
 type Ad = {
@@ -30,12 +31,7 @@ const [related, tags, adsMid, adsEnd] = await Promise.all([
 ]);
 
 const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
-const resolveMedia = (url?: string | null) => {
-  if (!url) return null;
-  if (url.startsWith('http')) return url;
-  if (url.startsWith('/')) return `${apiBase}${url}`;
-  return url;
-};
+const resolveMedia = (url?: string | null) => resolveMediaUrl(url, apiBase);
 
 function toEmbed(url?: string | null) {
   if (!url) return null;
@@ -66,16 +62,8 @@ const articleMidAdSlot = import.meta.env.PUBLIC_ADS_SLOT_ARTICLE_MID || '';
 const articleEndAdSlot = import.meta.env.PUBLIC_ADS_SLOT_ARTICLE_END || '';
 const manualMidAd = adsMid?.[0];
 const manualEndAd = adsEnd?.[0];
-const midImage = manualMidAd?.image_url
-  ? manualMidAd.image_url.startsWith('http')
-    ? manualMidAd.image_url
-    : `${apiBase}${manualMidAd.image_url}`
-  : null;
-const endImage = manualEndAd?.image_url
-  ? manualEndAd.image_url.startsWith('http')
-    ? manualEndAd.image_url
-    : `${apiBase}${manualEndAd.image_url}`
-  : null;
+const midImage = resolveMediaUrl(manualMidAd?.image_url, apiBase);
+const endImage = resolveMediaUrl(manualEndAd?.image_url, apiBase);
 ---
 
 <Layout title={article.title} description={article.excerpt || article.title}>

@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { listArticles } from '../../lib/api';
+import { resolveMediaUrl } from '../../lib/media';
 
 export const prerender = false;
 
@@ -35,12 +36,7 @@ const articles = await listArticles({
   search: search || undefined,
 });
 
-const resolveMedia = (url?: string | null) => {
-  if (!url) return null;
-  if (url.startsWith('http')) return url;
-  if (url.startsWith('/')) return `${apiBase}${url}`;
-  return url;
-};
+const resolveMedia = (url?: string | null) => resolveMediaUrl(url, apiBase);
 ---
 
 <Layout title={`#${tagName}`} description={`Noticias etiquetadas con ${tagName}`}>
