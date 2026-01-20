@@ -157,10 +157,20 @@ const endImage = resolveMediaUrl(manualEndAd?.image_url, apiBase);
     data-slug={articleSlugValue}
     data-comment-url={commentHref}
     data-disqus-shortname={disqusShortname}
+    data-api-base={apiBase}
   >
     const { dataset } = document.currentScript;
-    const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
+    const apiBase = dataset.apiBase || '';
     const articleSlug = dataset.slug || '';
-    fetch(`${apiBase}/api/articles/${articleSlug}/view`, { method: 'POST' }).catch(() => {});
+    if (articleSlug) {
+      const endpoint = `${apiBase}/api/articles/${articleSlug}/view`;
+      try {
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(endpoint);
+        } else {
+          fetch(endpoint, { method: 'POST', keepalive: true }).catch(() => {});
+        }
+      } catch (_) {}
+    }
   </script>
 </Layout>

@@ -91,6 +91,10 @@ const sidebarImage = resolveMediaUrl(manualSidebar?.image_url, apiBase);
         <div class="aspect-video bg-ctv-dark/5">
           {liveKind?.kind === 'file' ? (
             <video src={liveKind.url} class="w-full h-full" controls autoplay muted playsinline preload="none"></video>
+          ) : liveKind?.kind === 'hls' ? (
+            <div class="w-full h-full relative">
+              <video id="live-video" class="w-full h-full" controls autoplay muted playsinline preload="none"></video>
+            </div>
           ) : (
             <iframe
               src={liveKind?.kind === 'embed' ? liveKind.url : playerEmbed}
@@ -409,6 +413,7 @@ const sidebarImage = resolveMediaUrl(manualSidebar?.image_url, apiBase);
         if (document.visibilityState === 'visible') poll();
       });
       window.addEventListener('beforeunload', () => clearInterval(interval));
+      if (currentKind) renderLive(currentKind, currentLive);
     })();
   </script>
 </Layout>
