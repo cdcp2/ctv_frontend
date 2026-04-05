@@ -1,0 +1,191 @@
+---
+import { resolveMediaUrl } from '../lib/media';
+import type { Advertisement, AdvertisementPosition } from '../lib/api';
+
+export interface Props {
+  ad?: Advertisement | null;
+  position: AdvertisementPosition;
+  apiBase: string;
+  showLabel?: boolean;
+  refreshMs?: number;
+  fallbackPositions?: string[];
+}
+
+const {
+  ad = null,
+  position,
+  apiBase,
+  showLabel = true,
+  refreshMs = 30000,
+  fallbackPositions = [],
+} = Astro.props;
+
+const adImage = resolveMediaUrl(ad?.image_url, apiBase);
+const refreshSeconds = Math.max(5, Math.round(refreshMs / 1000));
+const shellClass = `ad-shell ad-${position}`;
+const queryPositions = [position, ...fallbackPositions];
+---
+
+<div
+  class="manual-ad-slot"
+  data-api-base={apiBase}
+  data-position={position}
+  data-query-positions={queryPositions.join(',')}
+  data-rotation-seconds={String(refreshSeconds)}
+  data-show-label={showLabel ? 'true' : 'false'}
+  data-refresh-ms={String(refreshMs)}
+  data-ad-id={ad?.id ? String(ad.id) : ''}
+  data-visible={ad ? 'true' : 'false'}
+  style={ad ? undefined : 'display:none;'}
+>
+  {ad ? (
+    ad.html_snippet ? (
+      <div class={shellClass}>
+        {showLabel && <span class="ad-label">Publicidad</span>}
+        <div class="ad-frame" set:html={ad.html_snippet}></div>
+      </div>
+    ) : adImage ? (
+      ad.target_url ? (
+        <a class={shellClass} href={ad.target_url} target="_blank" rel="noreferrer">
+          {showLabel && <span class="ad-label">Publicidad</span>}
+          <img src={adImage} alt={ad.title} class="ad-frame" loading="lazy" style="object-fit:contain;" />
+        </a>
+      ) : (
+        <div class={shellClass}>
+          {showLabel && <span class="ad-label">Publicidad</span>}
+          <img src={adImage} alt={ad.title} class="ad-frame" loading="lazy" style="object-fit:contain;" />
+        </div>
+      )
+    ) : null
+  ) : null}
+</div>
+
+<script is:inline>
+  (() => {
+    const root = document.currentScript?.previousElementSibling;
+    if (!(root instanceof HTMLElement) || root.dataset.bound === 'true') return;
+
+    root.dataset.bound = 'true';
+
+    const apiBase = root.dataset.apiBase || '';
+    const position = root.dataset.position || '';
+    const queryPositions = (root.dataset.queryPositions || position)
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const rotationSeconds = Number(root.dataset.rotationSeconds || '30');
+    const showLabel = root.dataset.showLabel !== 'false';
+    const refreshMs = Number(root.dataset.refreshMs || '30000');
+
+    const normalizeUploadsPath = (value) =>
+      value.replace(/\/uploads\/uploads(\/|$)/g, '/uploads$1');
+
+    const resolveMedia = (value) => {
+      if (!value) return '';
+      const normalized = normalizeUploadsPath(value);
+      if (normalized.startsWith('http')) return normalized;
+
+      const base = apiBase.replace(/\/+$/, '');
+      const path = normalized.startsWith('/') ? normalized : `/${normalized}`;
+      return `${base}${path}`;
+    };
+
+    const clearAd = () => {
+      root.replaceChildren();
+      root.style.display = 'none';
+      root.dataset.adId = '';
+      root.dataset.visible = 'false';
+    };
+
+    const renderAd = (ad) => {
+      if (!ad || (!ad.html_snippet && !ad.image_url)) {
+        clearAd();
+        return;
+      }
+
+      const shell = document.createElement(
+        ad.html_snippet ? 'div' : ad.target_url ? 'a' : 'div',
+      );
+      shell.className = `ad-shell ad-${position}`;
+
+      if (!ad.html_snippet && ad.target_url && shell instanceof HTMLAnchorElement) {
+        shell.href = ad.target_url;
+        shell.target = '_blank';
+        shell.rel = 'noreferrer';
+      }
+
+      if (showLabel) {
+        const label = document.createElement('span');
+        label.className = 'ad-label';
+        label.textContent = 'Publicidad';
+        shell.appendChild(label);
+      }
+
+      if (ad.html_snippet) {
+        const frame = document.createElement('div');
+        frame.className = 'ad-frame';
+        frame.innerHTML = ad.html_snippet;
+        shell.appendChild(frame);
+      } else {
+        const frame = document.createElement('img');
+        frame.className = 'ad-frame';
+        frame.alt = ad.title || 'Publicidad';
+        frame.loading = 'lazy';
+        frame.style.objectFit = 'contain';
+        frame.src = resolveMedia(ad.image_url);
+        shell.appendChild(frame);
+      }
+
+      root.replaceChildren(shell);
+      root.style.display = '';
+      root.dataset.adId = ad.id ? String(ad.id) : '';
+      root.dataset.visible = 'true';
+    };
+
+    const refresh = async () => {
+      for (const queryPosition of queryPositions) {
+        const endpoint =
+          `${apiBase.replace(/\/+$/, '')}/api/ads?position=${encodeURIComponent(queryPosition)}` +
+          `&limit=1&rotate=true&rotation_interval_seconds=${rotationSeconds}`;
+
+        try {
+          const response = await fetch(endpoint, {
+            headers: { Accept: 'application/json' },
+          });
+
+          if (!response.ok) continue;
+
+          const payload = await response.json();
+          const nextAd = Array.isArray(payload) ? payload[0] : null;
+
+          if (!nextAd) {
+            continue;
+          }
+
+          if (String(nextAd.id || '') !== root.dataset.adId) {
+            renderAd(nextAd);
+          }
+
+          return;
+        } catch (_) {}
+      }
+
+      clearAd();
+    };
+
+    if (!root.dataset.adId) {
+      refresh();
+    }
+
+    if (refreshMs > 0) {
+      const timer = window.setInterval(refresh, refreshMs);
+      window.addEventListener(
+        'beforeunload',
+        () => {
+          window.clearInterval(timer);
+        },
+        { once: true },
+      );
+    }
+  })();
+</script>

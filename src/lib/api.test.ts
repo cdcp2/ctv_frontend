@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+	getAds,
 	getArticle,
 	getCategories,
 	getVideos,
@@ -108,5 +109,91 @@ describe('api client', () => {
 
 		await expect(incrementViews('slug')).resolves.toBeUndefined();
 		expect(warnSpy).toHaveBeenCalled();
+	});
+
+	it('builds the ads request with rotation params', async () => {
+		const payload = [
+			{
+				id: 10,
+				title: 'Footer ad',
+				position: 'article_footer',
+				image_url: '/uploads/footer.png',
+			},
+		];
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+				expect(url).toBe(
+					`${API_BASE}/api/ads?position=article_footer&limit=1&rotate=true&rotation_interval_seconds=30`,
+				);
+				expect(init?.headers).toMatchObject({ 'Content-Type': 'application/json' });
+				return jsonResponse(payload);
+			}),
+		);
+
+		const ads = await getAds('article_footer', {
+			limit: 1,
+			rotate: true,
+			rotationIntervalSeconds: 30,
+		});
+
+		expect(ads).toEqual(payload);
+	});
+
+	it('falls back to legacy ad positions when the new slot has no ads', async () => {
+		const payload = [
+			{
+				id: 22,
+				title: 'Legacy sidebar',
+				position: 'sidebar',
+				image_url: '/uploads/sidebar.png',
+			},
+		];
+
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(jsonResponse([]))
+			.mockResolvedValueOnce(jsonResponse(payload));
+
+		vi.stubGlobal('fetch', fetchMock);
+
+		const ads = await getAds('home_sidebar', {
+			limit: 1,
+			rotate: true,
+			rotationIntervalSeconds: 30,
+			fallbackPositions: ['sidebar'],
+		});
+
+		expect(fetchMock).toHaveBeenNthCalledWith(
+			1,
+			`${API_BASE}/api/ads?position=home_sidebar&limit=1&rotate=true&rotation_interval_seconds=30`,
+			expect.objectContaining({ headers: { 'Content-Type': 'application/json' } }),
+		);
+		expect(fetchMock).toHaveBeenNthCalledWith(
+			2,
+			`${API_BASE}/api/ads?position=sidebar&limit=1&rotate=true&rotation_interval_seconds=30`,
+			expect.objectContaining({ headers: { 'Content-Type': 'application/json' } }),
+		);
+		expect(ads).toEqual(payload);
+	});
+
+	it('returns an empty list when no ad exists in either primary or fallback positions', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(jsonResponse([], 200))
+			.mockResolvedValueOnce(jsonResponse([], 200));
+
+		vi.stubGlobal('fetch', fetchMock);
+
+		const ads = await getAds('article_inline', {
+			limit: 1,
+			rotate: true,
+			rotationIntervalSeconds: 30,
+			fallbackPositions: ['article_mid'],
+		});
+
+		expect(ads).toEqual([]);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 });

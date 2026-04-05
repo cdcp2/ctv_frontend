@@ -34,22 +34,27 @@ body {
     --ad-max-width: 100%;
     --ad-max-height: 360px;
 }
+.ad-shell.ad-home_sidebar,
 .ad-shell.ad-sidebar {
     --ad-max-width: 340px;
     --ad-max-height: 640px;
 }
+.ad-shell.ad-article_inline,
 .ad-shell.ad-article_mid {
     --ad-max-width: 100%;
     --ad-max-height: 420px;
 }
+.ad-shell.ad-article_footer,
 .ad-shell.ad-article_end {
     --ad-max-width: 100%;
     --ad-max-height: 240px;
 }
 @media (max-width: 1024px) {
+    .ad-shell.ad-home_sidebar,
     .ad-shell.ad-sidebar {
         --ad-max-height: 480px;
     }
+    .ad-shell.ad-article_footer,
     .ad-shell.ad-article_end {
         --ad-max-width: 560px;
         --ad-max-height: 180px;
@@ -63,14 +68,17 @@ body {
         --ad-max-width: 360px;
         --ad-max-height: 200px;
     }
+    .ad-shell.ad-home_sidebar,
     .ad-shell.ad-sidebar {
         --ad-max-width: 360px;
         --ad-max-height: 360px;
     }
+    .ad-shell.ad-article_inline,
     .ad-shell.ad-article_mid {
         --ad-max-width: 360px;
         --ad-max-height: 320px;
     }
+    .ad-shell.ad-article_footer,
     .ad-shell.ad-article_end {
         --ad-max-width: 360px;
         --ad-max-height: 160px;

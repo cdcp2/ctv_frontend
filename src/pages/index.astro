@@ -1,18 +1,24 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { getSiteConfig, getFeatured, getBreaking, getVideos, getMostRead, listArticles, type Tag } from '../lib/api';
+import {
+  getAds,
+  getBreaking,
+  getFeatured,
+  getMostRead,
+  getSiteConfig,
+  getVideos,
+  listArticles,
+  type Advertisement,
+  type Tag,
+} from '../lib/api';
 import { resolveMediaUrl } from '../lib/media';
 import AdSlot from '../components/AdSlot.astro';
+import ManualAdSlot from '../components/ManualAdSlot.astro';
 
 const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
-type Ad = {
-  id: number;
-  title: string;
-  image_url?: string | null;
-  target_url?: string | null;
-  html_snippet?: string | null;
-  position: string;
-};
+const adRefreshMsRaw = Number.parseInt(import.meta.env.PUBLIC_AD_ROTATION_REFRESH_MS || '30000', 10);
+const adRefreshMs = Number.isFinite(adRefreshMsRaw) && adRefreshMsRaw > 0 ? adRefreshMsRaw : 30000;
+const adRotationSeconds = Math.max(5, Math.round(adRefreshMs / 1000));
 
 const [siteConfig, featured, breaking, videos, mostRead, latest, tags] = await Promise.all([
   getSiteConfig(),
@@ -25,8 +31,13 @@ const [siteConfig, featured, breaking, videos, mostRead, latest, tags] = await P
 ]);
 
 const [adsHomeTop, adsSidebar] = await Promise.all([
-  fetch(`${apiBase}/api/ads?position=home_top&limit=1`).then(r => r.ok ? r.json() as Promise<Ad[]> : []).catch(() => []) as Promise<Ad[]>,
-  fetch(`${apiBase}/api/ads?position=sidebar&limit=2`).then(r => r.ok ? r.json() as Promise<Ad[]> : []).catch(() => []) as Promise<Ad[]>,
+  getAds('home_top', { limit: 1, rotate: true, rotationIntervalSeconds: adRotationSeconds }),
+  getAds('home_sidebar', {
+    limit: 1,
+    rotate: true,
+    rotationIntervalSeconds: adRotationSeconds,
+    fallbackPositions: ['sidebar'],
+  }),
 ]);
 
 const featuredList = (featured && featured.length ? featured : (breaking || [])).slice(0, 5);
@@ -73,12 +84,13 @@ const playerEmbed = liveKind?.kind === 'embed' ? liveKind.url : liveEmbed || lat
 
 const adsClient = 'ca-pub-7829004963088413';
 const homeTopAdSlot = import.meta.env.PUBLIC_ADS_SLOT_HOME_TOP || '';
-const homeSideAdSlot = import.meta.env.PUBLIC_ADS_SLOT_HOME_SIDE || '';
+const homeSideAdSlot =
+  import.meta.env.PUBLIC_ADS_SLOT_HOME_SIDEBAR ||
+  import.meta.env.PUBLIC_ADS_SLOT_HOME_SIDE ||
+  '';
 
-const manualHomeTop = adsHomeTop?.[0];
-const manualSidebar = adsSidebar?.[0];
-const homeTopImage = resolveMediaUrl(manualHomeTop?.image_url, apiBase);
-const sidebarImage = resolveMediaUrl(manualSidebar?.image_url, apiBase);
+const manualHomeTop = adsHomeTop?.[0] as Advertisement | undefined;
+const manualSidebar = adsSidebar?.[0] as Advertisement | undefined;
 ---
 
 <Layout title="Inicio">
@@ -106,22 +118,24 @@ const sidebarImage = resolveMediaUrl(manualSidebar?.image_url, apiBase);
           )}
         </div>
 
-        {(manualHomeTop || homeTopAdSlot) && (
-          <div class="p-4">
-            {manualHomeTop ? (
-              manualHomeTop.html_snippet ? (
-                <div class="ad-shell ad-home_top" set:html={manualHomeTop.html_snippet}></div>
-              ) : homeTopImage ? (
-                <a class="ad-shell ad-home_top" href={manualHomeTop.target_url || '#'} target="_blank" rel="noreferrer">
-                  <span class="ad-label">Publicidad</span>
-                  <img src={homeTopImage} alt={manualHomeTop.title} class="ad-frame" loading="lazy" style="object-fit:contain;" />
-                </a>
-              ) : null
-            ) : (
-              <AdSlot client={adsClient} slot={homeTopAdSlot} slotType="home_top" />
-            )}
-          </div>
-        )}
+        <div class="p-4">
+          {manualHomeTop ? (
+            <ManualAdSlot
+              ad={manualHomeTop}
+              position="home_top"
+              apiBase={apiBase}
+              refreshMs={adRefreshMs}
+            />
+          ) : homeTopAdSlot ? (
+            <AdSlot client={adsClient} slot={homeTopAdSlot} slotType="home_top" />
+          ) : (
+            <ManualAdSlot
+              position="home_top"
+              apiBase={apiBase}
+              refreshMs={adRefreshMs}
+            />
+          )}
+        </div>
       </div>
 
       <div class="bg-white shadow rounded-lg p-4">
@@ -162,32 +176,34 @@ const sidebarImage = resolveMediaUrl(manualSidebar?.image_url, apiBase);
         </div>
       </aside>
 
-      {(manualSidebar || homeSideAdSlot) && (
-        <div class="bg-white shadow rounded-lg p-4">
-          <h3 class="text-xl font-black text-ctv-primary uppercase mb-3">Publicidad</h3>
-          {manualSidebar ? (
-            manualSidebar.html_snippet ? (
-              <div class="ad-shell ad-sidebar">
-                <div class="ad-frame" set:html={manualSidebar.html_snippet}></div>
-              </div>
-            ) : sidebarImage ? (
-              <div class="ad-shell ad-sidebar">
-                <a href={manualSidebar.target_url || '#'} target="_blank" rel="noreferrer">
-                  <img
-                    src={sidebarImage}
-                    alt={manualSidebar.title}
-                    class="ad-frame"
-                    loading="lazy"
-                    style="object-fit:contain;"
-                  />
-                </a>
-              </div>
-            ) : null
-          ) : (
-            <AdSlot client={adsClient} slot={homeSideAdSlot} slotType="sidebar" showLabel={false} />
-          )}
-        </div>
-      )}
+      <div class="bg-white shadow rounded-lg p-4">
+        <h3 class="text-xl font-black text-ctv-primary uppercase mb-3">Publicidad</h3>
+        {manualSidebar ? (
+          <ManualAdSlot
+            ad={manualSidebar}
+            position="home_sidebar"
+            apiBase={apiBase}
+            fallbackPositions={['sidebar']}
+            showLabel={false}
+            refreshMs={adRefreshMs}
+          />
+        ) : homeSideAdSlot ? (
+          <AdSlot
+            client={adsClient}
+            slot={homeSideAdSlot}
+            slotType="home_sidebar"
+            showLabel={false}
+          />
+        ) : (
+          <ManualAdSlot
+            position="home_sidebar"
+            apiBase={apiBase}
+            fallbackPositions={['sidebar']}
+            showLabel={false}
+            refreshMs={adRefreshMs}
+          />
+        )}
+      </div>
 
       <div class="bg-white shadow rounded-lg p-4">
         <h3 class="text-xl font-black text-ctv-primary uppercase mb-3">Tags</h3>

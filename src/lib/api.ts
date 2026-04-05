@@ -1,5 +1,24 @@
 const API_BASE = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
 
+export type AdvertisementPosition =
+  | 'home_top'
+  | 'home_sidebar'
+  | 'article_inline'
+  | 'article_footer';
+
+export type Advertisement = {
+  id: number;
+  title: string;
+  image_url?: string | null;
+  target_url?: string | null;
+  html_snippet?: string | null;
+  position: string;
+  is_active?: boolean;
+  weight?: number;
+  starts_at?: string | null;
+  ends_at?: string | null;
+};
+
 export type Article = {
   id: number;
   title: string;
@@ -117,4 +136,33 @@ export async function getVideos() {
 
 export async function getMostRead() {
   return apiFetch<Article[]>(`/api/articles/most-read`);
+}
+
+export async function getAds(
+  position: AdvertisementPosition | string,
+  options: {
+    limit?: number;
+    rotate?: boolean;
+    rotationIntervalSeconds?: number;
+    fallbackPositions?: string[];
+  } = {},
+) {
+  const positions = [position, ...(options.fallbackPositions ?? [])];
+
+  for (const currentPosition of positions) {
+    const query = new URLSearchParams({ position: currentPosition });
+
+    if (options.limit) query.set('limit', String(options.limit));
+    if (options.rotate !== undefined) query.set('rotate', String(options.rotate));
+    if (options.rotationIntervalSeconds) {
+      query.set('rotation_interval_seconds', String(options.rotationIntervalSeconds));
+    }
+
+    const ads = await apiFetch<Advertisement[]>(`/api/ads?${query.toString()}`);
+    if (ads && ads.length > 0) {
+      return ads;
+    }
+  }
+
+  return [];
 }
