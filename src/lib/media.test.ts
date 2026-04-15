@@ -24,6 +24,20 @@ describe('media helpers', () => {
     );
   });
 
+  it('extracts the src from youtube iframe code', () => {
+    expect(
+      resolveVideoEmbedUrl(
+        '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ?si=test" allowfullscreen></iframe>',
+      ),
+    ).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ?si=test');
+  });
+
+  it('converts youtube live links into embed urls', () => {
+    expect(resolveVideoEmbedUrl('https://www.youtube.com/live/dQw4w9WgXcQ?feature=share')).toBe(
+      'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    );
+  });
+
   it('detects hls sources', () => {
     expect(inferStreamSource('https://live.ctv.com/hls/channel/index.m3u8')).toEqual({
       kind: 'hls',

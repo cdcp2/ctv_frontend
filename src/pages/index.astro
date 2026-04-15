@@ -57,10 +57,7 @@ const featuredVideo = activeLive
   ? {
       ...activeLive,
       badge: activeLive.kind === 'hls' ? 'En vivo' : 'Señal activa',
-      summary:
-        activeLive.kind === 'hls'
-          ? 'Mostrando la transmisión en vivo disponible.'
-          : 'Mostrando la transmisión disponible.',
+      summary: 'Sigue la transmisión en curso.',
       articleHref: null,
       articleTitle: null,
     }
@@ -69,12 +66,14 @@ const featuredVideo = activeLive
       kind: 'embed' as const,
       url: latestVideoEmbed,
       badge: 'Último video',
-      summary:
-        'No hay señal activa. Se muestra automáticamente el video más reciente de YouTube publicado en el CMS.',
+      summary: 'Mira el video más reciente disponible.',
       articleHref: `/article/${latestVideo.slug}`,
       articleTitle: latestVideo.title,
     }
   : null;
+const featureHeading = activeLive ? 'Señal en vivo' : featuredVideo ? 'Último video' : 'Video principal';
+const featureSummary = featuredVideo?.summary || '';
+const shouldFetchYouTubeFallback = !activeLive && !featuredVideo;
 
 const adsClient = 'ca-pub-7829004963088413';
 const homeTopAdSlot = import.meta.env.PUBLIC_ADS_SLOT_HOME_TOP || '';
@@ -93,21 +92,30 @@ const manualSidebar = adsSidebar?.[0] as Advertisement | undefined;
       <div class="bg-white shadow rounded-lg overflow-hidden">
         <div class="px-4 pt-4 flex items-start justify-between gap-3">
           <div class="space-y-1">
-            <h2 class="text-lg font-black uppercase text-ctv-accent">
-              {activeLive ? 'Señal en vivo' : 'Último video disponible'}
+            <h2 id="home-feature-title" class="text-lg font-black uppercase text-ctv-accent">
+              {featureHeading}
             </h2>
-            <p class="text-sm text-slate-600">
-              {featuredVideo?.summary ||
-                'Publica un video en YouTube o activa una transmisión en vivo para mostrarla aquí.'}
+            <p
+              id="home-feature-summary"
+              class:list={[
+                'text-sm text-slate-600',
+                !featureSummary && 'hidden',
+              ]}
+            >
+              {featureSummary}
             </p>
           </div>
-          {featuredVideo?.badge ? (
-            <span class="inline-flex items-center rounded-full bg-ctv-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-ctv-primary">
-              {featuredVideo.badge}
-            </span>
-          ) : null}
+          <span
+            id="home-feature-badge"
+            class:list={[
+              'inline-flex items-center rounded-full bg-ctv-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-ctv-primary',
+              !featuredVideo?.badge && 'hidden',
+            ]}
+          >
+            {featuredVideo?.badge || ''}
+          </span>
         </div>
-        <div class="aspect-video bg-ctv-dark/5">
+        <div id="home-feature-player" class="aspect-video bg-ctv-dark/5">
           {featuredVideo?.kind === 'file' ? (
             <video
               src={featuredVideo.url}
@@ -136,23 +144,25 @@ const manualSidebar = adsSidebar?.[0] as Advertisement | undefined;
               class="w-full h-full"
               allow="autoplay; encrypted-media"
               allowfullscreen
-              title="Señal en vivo"
+              title="Video principal"
             ></iframe>
           ) : (
             <div class="flex h-full flex-col items-center justify-center gap-2 bg-slate-100 px-6 text-center text-slate-600">
-              <strong class="text-base font-black uppercase text-slate-800">Sin señal publicada</strong>
-              <span>No hay un directo activo ni un video reciente disponible para mostrar.</span>
+              <strong class="text-base font-black uppercase text-slate-800">Video no disponible</strong>
+              <span>En este momento no hay contenido en video para mostrar.</span>
             </div>
           )}
         </div>
         {featuredVideo?.articleHref && featuredVideo.articleTitle ? (
-          <div class="px-4 pt-3 text-sm text-slate-600">
+          <div id="home-feature-source" class="px-4 pt-3 text-sm text-slate-600">
             Tomado del artículo{' '}
             <a href={featuredVideo.articleHref} class="font-semibold text-ctv-accent hover:underline">
               {featuredVideo.articleTitle}
             </a>
           </div>
-        ) : null}
+        ) : (
+          <div id="home-feature-source" class="hidden px-4 pt-3 text-sm text-slate-600"></div>
+        )}
 
         <div class="p-4">
           {manualHomeTop ? (
@@ -362,6 +372,58 @@ const manualSidebar = adsSidebar?.[0] as Advertisement | undefined;
         }
 
         attach();
+      })();
+    </script>
+  ) : null}
+
+  {shouldFetchYouTubeFallback ? (
+    <script is:inline data-endpoint="/api/youtube/latest">
+      (() => {
+        const script = document.currentScript;
+        const endpoint = script?.dataset.endpoint || '/api/youtube/latest';
+        const player = document.getElementById('home-feature-player');
+        const title = document.getElementById('home-feature-title');
+        const summary = document.getElementById('home-feature-summary');
+        const badge = document.getElementById('home-feature-badge');
+        const source = document.getElementById('home-feature-source');
+        if (!player) return;
+
+        fetch(endpoint)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((payload) => {
+            const video = payload?.video;
+            if (!video?.embedUrl) return;
+
+            const iframe = document.createElement('iframe');
+            iframe.src = video.embedUrl;
+            iframe.className = 'w-full h-full';
+            iframe.allow = 'autoplay; encrypted-media';
+            iframe.allowFullscreen = true;
+            iframe.title = video.title || 'Video principal';
+            player.replaceChildren(iframe);
+
+            if (title) title.textContent = 'Ultimo video';
+            if (summary) {
+              summary.textContent = 'Mira el video mas reciente disponible.';
+              summary.classList.remove('hidden');
+            }
+            if (badge) {
+              badge.textContent = 'Video';
+              badge.classList.remove('hidden');
+            }
+            if (source && video.watchUrl) {
+              source.textContent = '';
+              const link = document.createElement('a');
+              link.href = video.watchUrl;
+              link.target = '_blank';
+              link.rel = 'noopener noreferrer';
+              link.className = 'font-semibold text-ctv-accent hover:underline';
+              link.textContent = video.title || 'Ver video';
+              source.append('Tomado de ', link);
+              source.classList.remove('hidden');
+            }
+          })
+          .catch(() => {});
       })();
     </script>
   ) : null}

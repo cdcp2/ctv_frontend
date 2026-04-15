@@ -10,22 +10,30 @@ export const resolveMediaUrl = (url: string | null | undefined, apiBase: string)
 };
 
 const YOUTUBE_URL_PATTERN =
-  /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/))([\w-]{11})/i;
+  /(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/))([\w-]{11})/i;
 const YOUTUBE_ID_PATTERN = /^[\w-]{11}$/;
+const IFRAME_SRC_PATTERN = /<iframe[^>]+src=["']([^"']+)["']/i;
 
 export const resolveVideoEmbedUrl = (url: string | null | undefined) => {
   if (!url) return null;
   const trimmed = url.trim();
   if (!trimmed) return null;
-  if (trimmed.includes('youtube.com/embed/')) return trimmed;
+  const iframeMatch = trimmed.match(IFRAME_SRC_PATTERN);
+  const source = iframeMatch?.[1]?.trim() || trimmed;
+  if (
+    source.includes('youtube.com/embed/') ||
+    source.includes('youtube-nocookie.com/embed/')
+  ) {
+    return source;
+  }
   if (YOUTUBE_ID_PATTERN.test(trimmed)) {
     return `https://www.youtube.com/embed/${trimmed}`;
   }
-  const match = trimmed.match(YOUTUBE_URL_PATTERN);
+  const match = source.match(YOUTUBE_URL_PATTERN);
   if (match?.[1]) {
     return `https://www.youtube.com/embed/${match[1]}`;
   }
-  return trimmed;
+  return source;
 };
 
 export type StreamSource =
