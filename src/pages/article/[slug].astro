@@ -10,7 +10,7 @@ import {
 import AdSlot from '../../components/AdSlot.astro';
 import DisqusThread from '../../components/DisqusThread';
 import ManualAdSlot from '../../components/ManualAdSlot.astro';
-import { resolveMediaUrl } from '../../lib/media';
+import { resolveMediaUrl, resolveVideoEmbedUrl } from '../../lib/media';
 import { formatBogotaDateTime } from '../../lib/datetime';
 
 export const prerender = false;
@@ -45,17 +45,7 @@ const [related, tags, adsMid, adsEnd] = await Promise.all([
 
 const apiBase = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
 const resolveMedia = (url?: string | null) => resolveMediaUrl(url, apiBase);
-
-function toEmbed(url?: string | null) {
-  if (!url) return null;
-  if (url.includes('youtube.com/watch')) {
-    const id = url.split('v=')[1]?.split('&')[0];
-    if (id) return `https://www.youtube.com/embed/${id}`;
-  }
-  return url;
-}
-
-const embed = toEmbed(article.video_embed_url);
+const embed = resolveVideoEmbedUrl(article.video_embed_url);
 const heroImage = resolveMedia(article.main_image_url);
 const published = article.published_at
   ? new Date(article.published_at)

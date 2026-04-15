@@ -11,7 +11,7 @@ import {
   type Advertisement,
   type Tag,
 } from '../lib/api';
-import { resolveMediaUrl } from '../lib/media';
+import { inferStreamSource, resolveMediaUrl, resolveVideoEmbedUrl } from '../lib/media';
 import AdSlot from '../components/AdSlot.astro';
 import ManualAdSlot from '../components/ManualAdSlot.astro';
 
@@ -50,37 +50,31 @@ const initialTagLimit = 10;
 const tagChunkSize = 8;
 
 const resolveMedia = (url?: string | null) => resolveMediaUrl(url, apiBase);
-
-function toEmbed(url?: string | null) {
-  if (!url) return null;
-  // Ya viene embebido o no es YouTube: lo usamos directo
-  if (url.includes('youtube.com/embed/')) return url;
-  const yt = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
-  if (yt?.[1]) return `https://www.youtube.com/embed/${yt[1]}`;
-  return url;
-}
-
-const liveEmbed = siteConfig?.is_live_active ? toEmbed(siteConfig?.live_stream_url) : null;
-const latestVideoEmbed = videoList.length ? toEmbed(videoList[0].video_embed_url) : null;
-const fallbackEmbedDirect = import.meta.env.PUBLIC_FALLBACK_YT_EMBED || '';
-const fallbackIds = (import.meta.env.PUBLIC_FALLBACK_YT_IDS || '')
-  .split(',')
-  .map((s: string) => s.trim())
-  .filter(Boolean);
-const fallbackIdx = fallbackIds.length ? Math.floor(Date.now() / (1000 * 60 * 60 * 12)) % fallbackIds.length : 0;
-const fallbackEmbed = fallbackEmbedDirect
-  ? fallbackEmbedDirect
-  : fallbackIds.length
-  ? `https://www.youtube.com/embed/${fallbackIds[fallbackIdx]}`
-  : 'https://www.youtube.com/embed/dQw4w9WgXcQ';
-const liveSource = siteConfig?.is_live_active ? siteConfig?.live_stream_url?.trim() || null : null;
-const liveKind = (() => {
-  if (!liveSource) return null;
-  if (liveSource.endsWith('.m3u8')) return { kind: 'hls', url: liveSource };
-  if (liveSource.match(/\.(mp4|webm|ogg)(\?|$)/i)) return { kind: 'file', url: liveSource };
-  return { kind: 'embed', url: toEmbed(liveSource) };
-})();
-const playerEmbed = liveKind?.kind === 'embed' ? liveKind.url : liveEmbed || latestVideoEmbed || fallbackEmbed;
+const latestVideo = videoList.find((item) => !!resolveVideoEmbedUrl(item.video_embed_url)) || null;
+const latestVideoEmbed = resolveVideoEmbedUrl(latestVideo?.video_embed_url);
+const activeLive = siteConfig?.is_live_active ? inferStreamSource(siteConfig?.live_stream_url) : null;
+const featuredVideo = activeLive
+  ? {
+      ...activeLive,
+      badge: activeLive.kind === 'hls' ? 'En vivo' : 'Señal activa',
+      summary:
+        activeLive.kind === 'hls'
+          ? 'Mostrando la señal HLS configurada desde nginx.'
+          : 'Mostrando la señal publicada actualmente en el backend.',
+      articleHref: null,
+      articleTitle: null,
+    }
+  : latestVideo && latestVideoEmbed
+  ? {
+      kind: 'embed' as const,
+      url: latestVideoEmbed,
+      badge: 'Último video',
+      summary:
+        'No hay señal activa. Se muestra automáticamente el video más reciente de YouTube publicado en el CMS.',
+      articleHref: `/article/${latestVideo.slug}`,
+      articleTitle: latestVideo.title,
+    }
+  : null;
 
 const adsClient = 'ca-pub-7829004963088413';
 const homeTopAdSlot = import.meta.env.PUBLIC_ADS_SLOT_HOME_TOP || '';
@@ -97,26 +91,68 @@ const manualSidebar = adsSidebar?.[0] as Advertisement | undefined;
   <section class="grid lg:grid-cols-[2fr,1fr] gap-8 items-start">
     <div class="space-y-8">
       <div class="bg-white shadow rounded-lg overflow-hidden">
-        <div class="px-4 pt-4 flex items-center justify-between">
-          <h2 class="text-lg font-black uppercase text-ctv-accent">Señal en vivo</h2>
+        <div class="px-4 pt-4 flex items-start justify-between gap-3">
+          <div class="space-y-1">
+            <h2 class="text-lg font-black uppercase text-ctv-accent">
+              {activeLive ? 'Señal en vivo' : 'Último video disponible'}
+            </h2>
+            <p class="text-sm text-slate-600">
+              {featuredVideo?.summary ||
+                'Publica un video en YouTube o activa una señal HLS desde nginx para mostrarlo aquí.'}
+            </p>
+          </div>
+          {featuredVideo?.badge ? (
+            <span class="inline-flex items-center rounded-full bg-ctv-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-ctv-primary">
+              {featuredVideo.badge}
+            </span>
+          ) : null}
         </div>
         <div class="aspect-video bg-ctv-dark/5">
-          {liveKind?.kind === 'file' ? (
-            <video src={liveKind.url} class="w-full h-full" controls autoplay muted playsinline preload="none"></video>
-          ) : liveKind?.kind === 'hls' ? (
+          {featuredVideo?.kind === 'file' ? (
+            <video
+              src={featuredVideo.url}
+              class="w-full h-full"
+              controls
+              autoplay
+              muted
+              playsinline
+              preload="none"
+            ></video>
+          ) : featuredVideo?.kind === 'hls' ? (
             <div class="w-full h-full relative">
-              <video id="live-video" class="w-full h-full" controls autoplay muted playsinline preload="none"></video>
+              <video
+                id="home-live-video"
+                class="w-full h-full"
+                controls
+                autoplay
+                muted
+                playsinline
+                preload="none"
+              ></video>
             </div>
-          ) : (
+          ) : featuredVideo?.kind === 'embed' ? (
             <iframe
-              src={liveKind?.kind === 'embed' ? liveKind.url : playerEmbed}
+              src={featuredVideo.url}
               class="w-full h-full"
               allow="autoplay; encrypted-media"
               allowfullscreen
               title="Señal en vivo"
             ></iframe>
+          ) : (
+            <div class="flex h-full flex-col items-center justify-center gap-2 bg-slate-100 px-6 text-center text-slate-600">
+              <strong class="text-base font-black uppercase text-slate-800">Sin señal publicada</strong>
+              <span>No hay un directo activo ni un video reciente disponible para mostrar.</span>
+            </div>
           )}
         </div>
+        {featuredVideo?.articleHref && featuredVideo.articleTitle ? (
+          <div class="px-4 pt-3 text-sm text-slate-600">
+            Tomado del artículo{' '}
+            <a href={featuredVideo.articleHref} class="font-semibold text-ctv-accent hover:underline">
+              {featuredVideo.articleTitle}
+            </a>
+          </div>
+        ) : null}
 
         <div class="p-4">
           {manualHomeTop ? (
@@ -297,139 +333,36 @@ const manualSidebar = adsSidebar?.[0] as Advertisement | undefined;
     });
   </script>
 
-  <script
-    is:inline
-    data-api-base={apiBase}
-    data-fallback={playerEmbed}
-    data-live-url={liveKind?.url || ''}
-    data-live-kind={liveKind?.kind || ''}
-  >
-    (() => {
-      const script = document.currentScript;
-      const apiBase = script?.dataset.apiBase || '';
-      const fallback = script?.dataset.fallback || '';
-      let currentLive = script?.dataset.liveUrl || '';
-      let currentKind = script?.dataset.liveKind || '';
+  {featuredVideo?.kind === 'hls' ? (
+    <script is:inline data-hls-url={featuredVideo.url}>
+      (() => {
+        const script = document.currentScript;
+        const url = script?.dataset.hlsUrl || '';
+        const video = document.getElementById('home-live-video');
+        if (!url || !video) return;
 
-      const resolveKind = (url) => {
-        if (!url) return null;
-        if (url.endsWith('.m3u8')) return { kind: 'hls', url };
-        if (url.match(/\.(mp4|webm|ogg)(\?|$)/i)) return { kind: 'file', url };
-        return { kind: 'embed', url };
-      };
+        const attach = () => {
+          if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = url;
+            video.play().catch(() => {});
+            return;
+          }
+          if (!window.Hls) return;
+          const hls = new window.Hls();
+          hls.loadSource(url);
+          hls.attachMedia(video);
+        };
 
-      const renderLive = (kind, url) => {
-        const container = document.querySelector('.aspect-video.bg-ctv-dark\\/5');
-        if (!container) return;
-        if (kind === 'file') {
-          container.innerHTML = `<video src="${url}" class="w-full h-full" controls autoplay muted playsinline preload="none"></video>`;
+        if (!window.Hls && !video.canPlayType('application/vnd.apple.mpegurl')) {
+          const loader = document.createElement('script');
+          loader.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.11/dist/hls.min.js';
+          loader.onload = attach;
+          document.head.appendChild(loader);
           return;
         }
-        if (kind === 'hls') {
-          container.innerHTML = `<div class="w-full h-full relative"><video id="live-video" class="w-full h-full" controls autoplay muted playsinline preload="none"></video></div>`;
-          const video = document.getElementById('live-video');
-          const attach = () => {
-            if (!video) return;
-            if (video.canPlayType('application/vnd.apple.mpegurl')) {
-              video.src = url;
-              video.play().catch(() => {});
-            } else if (window.Hls) {
-              const hls = new window.Hls();
-              hls.loadSource(url);
-              hls.attachMedia(video);
-            }
-          };
-          if (!window.Hls && !video.canPlayType('application/vnd.apple.mpegurl')) {
-            const s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.11/dist/hls.min.js';
-            s.onload = attach;
-            document.head.appendChild(s);
-          } else {
-            attach();
-          }
-          return;
-        }
-        container.innerHTML = `<iframe src="${url || fallback}" class="w-full h-full" allow="autoplay; encrypted-media" allowfullscreen title="Señal en vivo"></iframe>`;
-      };
 
-      const updateList = (selector, data) => {
-        const container = document.querySelector(selector);
-        if (!container) return;
-        const tpl = data
-          .map(
-            (item) => `
-              <a href="/article/${item.slug}" class="bg-white shadow-sm border border-gray-100 rounded-lg overflow-hidden hover:-translate-y-1 transition transform block">
-                ${item.main_image_url ? `<img src="${item.main_image_url.startsWith('http') ? item.main_image_url : `${apiBase}${item.main_image_url}`}" alt="${item.title}" class="w-full h-36 object-cover" loading="lazy" />` : ''}
-                <div class="p-4 space-y-2">
-                  <p class="text-xs uppercase tracking-wide text-ctv-accent font-bold">Noticia</p>
-                  <h4 class="font-bold leading-tight line-clamp-2">${item.title}</h4>
-                  ${item.excerpt ? `<p class="text-sm text-gray-600 line-clamp-2">${item.excerpt}</p>` : ''}
-                </div>
-              </a>`
-          )
-          .join('');
-        container.innerHTML = tpl || `<p class="text-sm text-gray-500">No hay noticias aún.</p>`;
-      };
-
-      const updateMostRead = (selector, data) => {
-        const container = document.querySelector(selector);
-        if (!container) return;
-        container.innerHTML =
-          data
-            .map(
-              (item) => `
-              <a href="/article/${item.slug}" class="block hover:text-ctv-accent transition">
-                <p class="font-semibold leading-tight">${item.title}</p>
-              </a>`
-            )
-            .join('') || `<p class="text-sm text-gray-500">Sin datos aún.</p>`;
-      };
-
-      const poll = async () => {
-        try {
-          const [cfgRes, latestRes, mostReadRes] = await Promise.all([
-            fetch(`${apiBase}/api/site-config`),
-            fetch(`${apiBase}/api/articles`),
-            fetch(`${apiBase}/api/articles/most-read`),
-          ]);
-          if (cfgRes.ok) {
-            const cfg = await cfgRes.json();
-            const liveUrl = cfg?.is_live_active ? (cfg.live_stream_url || '').trim() : '';
-            const kindInfo = resolveKind(liveUrl);
-            const newKind = kindInfo?.kind || '';
-            const newUrl = kindInfo?.url || '';
-            if (newUrl !== currentLive || newKind !== currentKind) {
-              currentLive = newUrl;
-              currentKind = newKind;
-              renderLive(newKind, newUrl);
-            }
-          }
-          if (latestRes.ok) {
-            const latest = await latestRes.json();
-            if (Array.isArray(latest)) {
-              updateList('[data-latest-list]', latest.slice(0, 8));
-            }
-          }
-          if (mostReadRes.ok) {
-            const most = await mostReadRes.json();
-            if (Array.isArray(most)) {
-              updateMostRead('[data-mostread-list]', most.slice(0, 6));
-            }
-          }
-        } catch (_e) {
-          // silencio
-        }
-      };
-
-      // Refresca live y lista cada 60s si la pestaña está visible
-      const interval = setInterval(() => {
-        if (document.visibilityState === 'visible') poll();
-      }, 60000);
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') poll();
-      });
-      window.addEventListener('beforeunload', () => clearInterval(interval));
-      if (currentKind) renderLive(currentKind, currentLive);
-    })();
-  </script>
+        attach();
+      })();
+    </script>
+  ) : null}
 </Layout>
