@@ -59,8 +59,8 @@ const featuredVideo = activeLive
       badge: activeLive.kind === 'hls' ? 'En vivo' : 'Señal activa',
       summary:
         activeLive.kind === 'hls'
-          ? 'Mostrando la señal HLS configurada desde nginx.'
-          : 'Mostrando la señal publicada actualmente en el backend.',
+          ? 'Mostrando la transmisión en vivo disponible.'
+          : 'Mostrando la transmisión disponible.',
       articleHref: null,
       articleTitle: null,
     }
@@ -98,7 +98,7 @@ const manualSidebar = adsSidebar?.[0] as Advertisement | undefined;
             </h2>
             <p class="text-sm text-slate-600">
               {featuredVideo?.summary ||
-                'Publica un video en YouTube o activa una señal HLS desde nginx para mostrarlo aquí.'}
+                'Publica un video en YouTube o activa una transmisión en vivo para mostrarla aquí.'}
             </p>
           </div>
           {featuredVideo?.badge ? (
