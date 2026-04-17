@@ -38,10 +38,24 @@ describe('media helpers', () => {
     );
   });
 
+  it('keeps valid non-youtube embed urls', () => {
+    expect(resolveVideoEmbedUrl('https://player.vimeo.com/video/123456')).toBe(
+      'https://player.vimeo.com/video/123456',
+    );
+  });
+
+  it('ignores invalid embed values', () => {
+    expect(resolveVideoEmbedUrl('sin-url-valida')).toBeNull();
+  });
+
   it('detects hls sources', () => {
     expect(inferStreamSource('https://live.ctv.com/hls/channel/index.m3u8')).toEqual({
       kind: 'hls',
       url: 'https://live.ctv.com/hls/channel/index.m3u8',
     });
+  });
+
+  it('rejects invalid stream urls', () => {
+    expect(inferStreamSource('canal-invalido')).toBeNull();
   });
 });

@@ -20,20 +20,27 @@ export const resolveVideoEmbedUrl = (url: string | null | undefined) => {
   if (!trimmed) return null;
   const iframeMatch = trimmed.match(IFRAME_SRC_PATTERN);
   const source = iframeMatch?.[1]?.trim() || trimmed;
+  if (!source) return null;
   if (
     source.includes('youtube.com/embed/') ||
     source.includes('youtube-nocookie.com/embed/')
   ) {
     return source;
   }
-  if (YOUTUBE_ID_PATTERN.test(trimmed)) {
-    return `https://www.youtube.com/embed/${trimmed}`;
+  if (YOUTUBE_ID_PATTERN.test(source)) {
+    return `https://www.youtube.com/embed/${source}`;
   }
   const match = source.match(YOUTUBE_URL_PATTERN);
   if (match?.[1]) {
     return `https://www.youtube.com/embed/${match[1]}`;
   }
-  return source;
+  try {
+    const parsed = new URL(source);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.toString();
+    }
+  } catch (_) {}
+  return null;
 };
 
 export type StreamSource =
@@ -51,5 +58,6 @@ export const inferStreamSource = (url: string | null | undefined): StreamSource 
   if (/\.(mp4|webm|ogg)(\?|$)/i.test(trimmed)) {
     return { kind: 'file', url: trimmed };
   }
-  return { kind: 'embed', url: resolveVideoEmbedUrl(trimmed) ?? trimmed };
+  const embedUrl = resolveVideoEmbedUrl(trimmed);
+  return embedUrl ? { kind: 'embed', url: embedUrl } : null;
 };

@@ -70,11 +70,23 @@ describe('api client', () => {
 	it('uses the fallback videos endpoint when the dedicated one is empty', async () => {
 		const fallbackPayload = [
 			{
+				id: 0,
+				title: 'Draft con basura',
+				slug: 'draft-bad',
+				content: 'content',
+				status: 'draft',
+				video_embed_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+				is_featured: false,
+				is_breaking: false,
+				views_count: 0,
+			},
+			{
 				id: 1,
 				title: 'Video',
 				slug: 'video-1',
 				content: 'content',
 				status: 'published',
+				video_embed_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
 				is_featured: false,
 				is_breaking: false,
 				views_count: 0,
@@ -83,7 +95,21 @@ describe('api client', () => {
 
 		const fetchMock = vi
 			.fn()
-			.mockResolvedValueOnce(jsonResponse([]))
+			.mockResolvedValueOnce(
+				jsonResponse([
+					{
+						id: 99,
+						title: 'Sin video',
+						slug: 'sin-video',
+						content: 'content',
+						status: 'draft',
+						video_embed_url: '',
+						is_featured: false,
+						is_breaking: false,
+						views_count: 0,
+					},
+				]),
+			)
 			.mockResolvedValueOnce(jsonResponse(fallbackPayload));
 
 		vi.stubGlobal('fetch', fetchMock);
@@ -100,7 +126,13 @@ describe('api client', () => {
 			`${API_BASE}/api/articles?has_video=true`,
 			expect.objectContaining({ headers: { 'Content-Type': 'application/json' } }),
 		);
-		expect(videos).toEqual(fallbackPayload);
+		expect(videos).toEqual([
+			{
+				...fallbackPayload[1],
+				excerpt: null,
+				main_image_url: null,
+			},
+		]);
 	});
 
 	it('does not throw if incrementViews fails', async () => {

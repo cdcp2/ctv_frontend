@@ -1,3 +1,5 @@
+import { resolveVideoEmbedUrl } from './media';
+
 const API_BASE = import.meta.env.PUBLIC_API_BASE || 'http://localhost:3000';
 
 export type AdvertisementPosition =
@@ -58,6 +60,34 @@ export type SiteConfig = {
   breaking_news_banner?: string | null;
 };
 
+const normalizeOptionalText = (value: string | null | undefined) => {
+  if (typeof value !== 'string') return value ?? null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+};
+
+const normalizeArticle = (article: Article): Article => ({
+  ...article,
+  excerpt: normalizeOptionalText(article.excerpt),
+  main_image_url: normalizeOptionalText(article.main_image_url),
+  video_embed_url: normalizeOptionalText(article.video_embed_url),
+});
+
+const normalizeArticles = (articles: Article[] | null) =>
+  articles?.map((article) => normalizeArticle(article)) ?? null;
+
+const isPublishedArticle = (article: Article) => {
+  if (article.status !== 'published') return false;
+  if (!article.published_at) return true;
+  const timestamp = Date.parse(article.published_at);
+  return Number.isNaN(timestamp) || timestamp <= Date.now();
+};
+
+const filterRenderableVideoArticles = (articles: Article[] | null) =>
+  articles?.filter(
+    (article) => isPublishedArticle(article) && !!resolveVideoEmbedUrl(article.video_embed_url),
+  ) ?? null;
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
   try {
     const res = await fetch(`${API_BASE}${path}`, {
@@ -95,15 +125,16 @@ export async function listArticles(params: ArticleFilters = {}) {
     if (v !== undefined && v !== null) qs.set(k, String(v));
   });
   const query = qs.toString() ? `?${qs.toString()}` : '';
-  return apiFetch<Article[]>(`/api/articles${query}`);
+  return normalizeArticles(await apiFetch<Article[]>(`/api/articles${query}`));
 }
 
 export async function getArticle(slug: string) {
-  return apiFetch<Article>(`/api/articles/${slug}`);
+  const article = await apiFetch<Article>(`/api/articles/${slug}`);
+  return article ? normalizeArticle(article) : null;
 }
 
 export async function getRelated(slug: string) {
-  return apiFetch<Article[]>(`/api/articles/${slug}/related`);
+  return normalizeArticles(await apiFetch<Article[]>(`/api/articles/${slug}/related`));
 }
 
 export async function getArticleTags(slug: string) {
@@ -119,23 +150,27 @@ export async function incrementViews(slug: string) {
 }
 
 export async function getFeatured() {
-  return apiFetch<Article[]>(`/api/articles/featured`);
+  return normalizeArticles(await apiFetch<Article[]>(`/api/articles/featured`));
 }
 
 export async function getBreaking() {
-  return apiFetch<Article[]>(`/api/articles/breaking`);
+  return normalizeArticles(await apiFetch<Article[]>(`/api/articles/breaking`));
 }
 
 export async function getVideos() {
   // Intento principal: endpoint dedicado
-  const primary = await apiFetch<Article[]>(`/api/articles/videos`);
+  const primary = filterRenderableVideoArticles(
+    normalizeArticles(await apiFetch<Article[]>(`/api/articles/videos`)),
+  );
   if (primary && primary.length) return primary;
   // Fallback: artículos con video (usa filtro has_video)
-  return apiFetch<Article[]>(`/api/articles?has_video=true`);
+  return filterRenderableVideoArticles(
+    normalizeArticles(await apiFetch<Article[]>(`/api/articles?has_video=true`)),
+  );
 }
 
 export async function getMostRead() {
-  return apiFetch<Article[]>(`/api/articles/most-read`);
+  return normalizeArticles(await apiFetch<Article[]>(`/api/articles/most-read`));
 }
 
 export async function getAds(
