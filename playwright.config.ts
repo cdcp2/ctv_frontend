@@ -5,6 +5,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
+  reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://127.0.0.1:4321',
     trace: 'on-first-retry',
@@ -18,7 +19,7 @@ export default defineConfig({
     },
     {
       command:
-        'PUBLIC_API_BASE=http://127.0.0.1:3000 PUBLIC_AD_ROTATION_REFRESH_MS=1000 ASTRO_DISABLE_SHARP=1 npm run dev -- --host 127.0.0.1 --port 4321',
+        'ASTRO_TELEMETRY_DISABLED=1 PUBLIC_API_BASE=http://127.0.0.1:3000 PUBLIC_AD_ROTATION_REFRESH_MS=1000 ASTRO_DISABLE_SHARP=1 npm run dev -- --host 127.0.0.1 --port 4321',
       url: 'http://127.0.0.1:4321',
       reuseExistingServer: false,
     },
@@ -26,7 +27,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], channel: 'chromium' },
     },
   ],
 });

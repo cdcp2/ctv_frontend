@@ -12,6 +12,7 @@ import DisqusThread from '../../components/DisqusThread';
 import ManualAdSlot from '../../components/ManualAdSlot.astro';
 import { resolveMediaUrl, resolveVideoEmbedUrl } from '../../lib/media';
 import { formatBogotaDateTime } from '../../lib/datetime';
+import { formatArticleContent } from '../../lib/article-content';
 
 export const prerender = false;
 
@@ -90,7 +91,7 @@ const manualFooterAd = adsEnd?.[0] as Advertisement | undefined;
       <h1 class="text-3xl md:text-4xl font-black leading-tight text-ctv-primary">{article.title}</h1>
       {article.excerpt && <p class="text-lg text-gray-700">{article.excerpt}</p>}
 
-      <div class="prose prose-lg max-w-none text-gray-900 prose-headings:font-black prose-a:text-ctv-accent" set:html={article.content}></div>
+      <div class="article-content prose prose-lg max-w-none text-gray-900 prose-headings:font-black prose-a:text-ctv-accent" set:html={formatArticleContent(article.content)}></div>
 
       <div class="my-6">
         {manualInlineAd ? (
@@ -201,3 +202,17 @@ const manualFooterAd = adsEnd?.[0] as Advertisement | undefined;
     }
   </script>
 </Layout>
+
+<style>
+  .article-content {
+    line-height: 1.75;
+  }
+
+  .article-content :global(p) {
+    margin-block: 0 1.25em;
+  }
+
+  .article-content :global(p:last-child) {
+    margin-bottom: 0;
+  }
+</style>

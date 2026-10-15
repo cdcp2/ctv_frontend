@@ -10,7 +10,7 @@ const article = {
   slug: 'colombia-time',
   content: '<p>Contenido de prueba para E2E.</p>',
   excerpt: 'Resumen E2E',
-  main_image_url: 'https://example.com/article-e2e.jpg',
+  main_image_url: `http://127.0.0.1:${port}/images/article-e2e.svg`,
   video_embed_url: null,
   author_id: 1,
   category_id: 1,
@@ -23,11 +23,28 @@ const article = {
   updated_at: '2026-04-04T15:00:00.000Z',
 };
 
+const paragraphArticles = {
+  'parrafos-texto': {
+    ...article,
+    slug: 'parrafos-texto',
+    title: 'Prueba visual de párrafos',
+    main_image_url: null,
+    content: 'La comunidad se reunió en Barranquilla para conocer los avances del proyecto. Este es el primer párrafo de la noticia.\r\nEsta línea continúa dentro del mismo párrafo.\r\n \t\r\nEl segundo párrafo presenta los detalles de la jornada y debe aparecer separado del anterior por un espacio visible.\r\n\r\n\r\nEl tercer párrafo cierra la noticia. También conserva símbolos como 5 < 10 & 20 > 15.',
+  },
+  'parrafos-html': {
+    ...article,
+    slug: 'parrafos-html',
+    title: 'Prueba visual de HTML existente',
+    main_image_url: null,
+    content: '<p>Primer párrafo con <strong>texto destacado</strong>.</p>\n<p>Segundo párrafo con <a href="/">un enlace</a>.<br>Esta línea continúa en el mismo párrafo.</p>\n<p>Tercer párrafo de una noticia guardada como HTML.</p>',
+  },
+};
+
 const inlineAds = [
   {
     id: 501,
     title: 'Banner inline 1',
-    image_url: 'https://example.com/banner-inline-1.png',
+    image_url: `http://127.0.0.1:${port}/images/banner-inline-1.svg`,
     target_url: 'https://cliente-1.test/',
     position: 'article_inline',
     is_active: true,
@@ -36,7 +53,7 @@ const inlineAds = [
   {
     id: 502,
     title: 'Banner inline 2',
-    image_url: 'https://example.com/banner-inline-2.png',
+    image_url: `http://127.0.0.1:${port}/images/banner-inline-2.svg`,
     target_url: 'https://cliente-2.test/',
     position: 'article_inline',
     is_active: true,
@@ -48,7 +65,7 @@ const footerAds = [
   {
     id: 601,
     title: 'Banner footer',
-    image_url: 'https://example.com/banner-footer.png',
+    image_url: `http://127.0.0.1:${port}/images/banner-footer.svg`,
     target_url: 'https://cliente-footer.test/',
     position: 'article_footer',
     is_active: true,
@@ -68,6 +85,12 @@ function sendJson(res, body, status = 200) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url || '/', `http://127.0.0.1:${port}`);
+
+  if (url.pathname.startsWith('/images/')) {
+    res.writeHead(200, { 'Content-Type': 'image/svg+xml' });
+    res.end('<svg xmlns="http://www.w3.org/2000/svg" width="640" height="180"><rect width="640" height="180" fill="#0F2C59"/><text x="24" y="95" fill="white" font-size="24">Imagen local de prueba</text></svg>');
+    return;
+  }
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
@@ -90,6 +113,12 @@ const server = http.createServer((req, res) => {
 
   if (url.pathname === '/api/articles/colombia-time') {
     sendJson(res, article);
+    return;
+  }
+
+  const paragraphMatch = url.pathname.match(/^\/api\/articles\/(parrafos-texto|parrafos-html)(?:\/(related|tags))?$/);
+  if (paragraphMatch) {
+    sendJson(res, paragraphMatch[2] ? [] : paragraphArticles[paragraphMatch[1]]);
     return;
   }
 
